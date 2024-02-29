@@ -1,0 +1,31 @@
+[package]
+name = "prometheus"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+fastwebsockets = { version = "0.7.0", features = ["upgrade", "with_axum"] }
+axum = "0.7.4"
+tokio = { version = "1", features = ["full"] }
+tokio-util = "*"
+futures-core = "*"
+futures-sink = "*"
+futures-util = "0.3"
+tokio-websockets = { version = "0.5.1", features = [
+    "client",
+    "http-integration",
+    "native-tls",
+    'fastrand',
+    'openssl',
+    'sha1_smol',
+] }
+tokio-tungstenite = "0.15.0"
+config = "0.11"
+serde = { version = "1.0", features = ["derive"] }
+byteorder = "1.4.3"
+bytes = "1.1.0"
+async-trait = "0.1.50"
+hyper = "*"
+http = { version = "1", default-features = false, features = ["std"] }
