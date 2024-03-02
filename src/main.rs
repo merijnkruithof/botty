@@ -1,13 +1,20 @@
+use std::collections::HashMap;
+
 use composer::Composable;
+use futures_util::future::select_all;
+use session::Session;
 use tokio::{
     sync::mpsc::{self, Receiver, Sender},
     task::JoinHandle,
 };
 use tokio_tungstenite::tungstenite::Message;
 
+use crate::errors::ClientError;
+
 mod app_config;
 mod client;
 mod composer;
+mod errors;
 mod packet;
 mod session;
 
@@ -26,24 +33,58 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Developed by Merijn (Discord: merijnn)");
     println!("-------------------------------------------------------------------------------");
 
-    let mut handles: Vec<JoinHandle<()>> = Vec::new();
-    let mut sessions: Vec<session::Session> = Vec::new();
+    let mut handles: Vec<JoinHandle<Result<String, ClientError>>> = Vec::new();
 
-    start_client_connections(&mut handles, &mut sessions).await;
+    let mut session_service = session::Service::new(HashMap::new());
 
-    // handle the command line here
-    for session in &sessions {
-        crate::composer::ClientHello {}.send(&session.tx).await;
+    start_client_connections(&mut handles, &mut session_service).await;
 
-        crate::composer::AuthTicket {
-            sso_ticket: &session.ticket,
-        }
-        .send(&session.tx)
-        .await;
+    for session in session_service.all() {
+        // send client hello to the server
+        session_service
+            .send(session, &composer::ClientHello {}.compose())
+            .await
+            .expect("unable to send client hello packet to the server");
+
+        session_service
+            .send(
+                session,
+                &composer::AuthTicket {
+                    sso_ticket: session.ticket.as_str(),
+                }
+                .compose(),
+            )
+            .await
+            .expect("unable to send auth ticket packet to the server");
     }
 
-    for handle in handles {
-        handle.await?;
+    while !handles.is_empty() {
+        let (result, _, remaining) = select_all(handles).await;
+
+        match result {
+            Ok(connection_finished) => match connection_finished {
+                Ok(auth_ticket) => {
+                    session_service.delete(&auth_ticket);
+
+                    println!("Task with auth ticket '{}' has been stopped", auth_ticket)
+                }
+
+                Err(err) => {
+                    session_service.delete(&err.auth_ticket);
+
+                    println!(
+                        "Task with auth ticket '{}' stopped due to an error: {}",
+                        &err.auth_ticket, err
+                    );
+                }
+            },
+
+            Err(err) => {
+                println!("Client wasn't able to connect with the server: {}", err)
+            }
+        }
+
+        handles = remaining;
     }
 
     Ok(())
@@ -56,8 +97,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 //
 // It will store all thread handles to &mut handles, and it will store all client sessions to &mut sessions.
 async fn start_client_connections(
-    handles: &mut Vec<JoinHandle<()>>,
-    sessions: &mut Vec<session::Session>,
+    handles: &mut Vec<JoinHandle<Result<String, ClientError>>>,
+    session_service: &mut session::Service,
 ) {
     match app_config::load() {
         Ok(config) => {
@@ -69,7 +110,7 @@ async fn start_client_connections(
                 let (tx, rx): (Sender<Message>, Receiver<Message>) = mpsc::channel(1);
                 let session = session::Session { ticket, tx };
 
-                sessions.push(session);
+                session_service.insert(session);
 
                 handles.push(tokio::spawn(create_client_connection_handler(
                     uri,
@@ -83,7 +124,11 @@ async fn start_client_connections(
     }
 }
 
-async fn create_client_connection_handler(uri: String, auth_ticket: String, rx: Receiver<Message>) {
+async fn create_client_connection_handler(
+    uri: String,
+    auth_ticket: String,
+    rx: Receiver<Message>,
+) -> Result<String, ClientError> {
     match client::connect(uri).await {
         Ok(client) => {
             client::handle(client, rx)
@@ -94,11 +139,20 @@ async fn create_client_connection_handler(uri: String, auth_ticket: String, rx: 
                 "Connection with auth ticket '{}' closed. This ticket is not usable anymore.",
                 auth_ticket
             );
+
+            Ok(auth_ticket)
         }
 
-        Err(err) => eprintln!(
-            "an error occurred while trying to connect to the server: {}",
-            err
-        ),
+        Err(err) => {
+            eprintln!(
+                "An error occurred while trying to connect to the websocket server: {:?}",
+                err
+            );
+
+            return Err(ClientError::new(
+                "Unable to connect to the websocket server",
+                auth_ticket,
+            ));
+        }
     }
 }
