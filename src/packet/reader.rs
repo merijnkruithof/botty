@@ -15,7 +15,7 @@ impl<'a> PacketReader<'a> {
     }
 
     pub fn read_uint16(&mut self) -> Option<u16> {
-        if self.position + 2 < self.buffer.len() {
+        if self.position + 2 <= self.buffer.len() {
             let result =
                 u16::from_be_bytes([self.buffer[self.position], self.buffer[self.position + 1]]);
 

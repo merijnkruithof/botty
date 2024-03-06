@@ -36,3 +36,16 @@ impl<'a> Composable for AuthTicket<'a> {
         Message::binary(buf.to_vec())
     }
 }
+
+pub struct Pong {}
+
+impl Composable for Pong {
+    fn compose(&self) -> Message {
+        let mut buf = BytesMut::new();
+
+        let mut packet_writer = Writer::new(&mut buf);
+        packet_writer.write_uint16(2596);
+
+        Message::binary(buf.to_vec())
+    }
+}

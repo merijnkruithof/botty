@@ -1,6 +1,7 @@
 use std::{
     collections::{HashMap, HashSet},
     fmt,
+    sync::{Arc, RwLock},
 };
 
 use tokio::sync::mpsc::Sender;
@@ -32,24 +33,32 @@ pub struct Session {
 }
 
 pub struct Service {
-    items: HashMap<String, Session>,
+    items: RwLock<HashMap<String, Arc<Session>>>,
 }
 
 impl Service {
-    pub fn new(items: HashMap<String, Session>) -> Service {
-        Service { items }
+    pub fn new() -> Service {
+        Service {
+            items: RwLock::new(HashMap::new()),
+        }
     }
 
-    pub fn insert(&mut self, session: Session) {
-        self.items.insert(session.ticket.clone(), session);
+    pub fn insert(&mut self, session: Arc<Session>) {
+        let mut write_lock = self.items.write().unwrap();
+
+        write_lock.insert(session.ticket.clone(), session);
     }
 
     pub fn delete(&mut self, ticket: &String) {
-        self.items.remove(ticket);
+        let mut write_lock = self.items.write().unwrap();
+
+        write_lock.remove(ticket);
     }
 
-    pub async fn broadcast(&self, msg: &Message) {
-        for (_, session) in &self.items {
+    pub async fn broadcast<F>(&self, msg: Message) {
+        let read_lock = self.items.read().unwrap();
+
+        for (_, session) in read_lock.iter() {
             session
                 .tx
                 .send(msg.clone())
@@ -58,18 +67,10 @@ impl Service {
         }
     }
 
-    pub fn all(&self) -> Vec<&Session> {
-        let mut sessions: Vec<&Session> = Vec::new();
-
-        for (_, session) in &self.items {
-            sessions.push(session);
-        }
-
-        sessions
-    }
-
     pub async fn send(&self, session: &Session, msg: &Message) -> Result<(), SessionError> {
-        if !self.items.contains_key(&session.ticket) {
+        let read_lock = self.items.read().unwrap();
+
+        if !read_lock.contains_key(&session.ticket) {
             return Err(SessionError::new("Session ticket not found in items"));
         }
 

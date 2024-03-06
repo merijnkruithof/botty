@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use composer::Composable;
 use futures_util::future::select_all;
@@ -7,7 +7,8 @@ use tokio::{
     sync::mpsc::{self, Receiver, Sender},
     task::JoinHandle,
 };
-use tokio_tungstenite::tungstenite::Message;
+
+use tokio_tungstenite::tungstenite::protocol::Message;
 
 use crate::errors::ClientError;
 
@@ -15,6 +16,7 @@ mod app_config;
 mod client;
 mod composer;
 mod errors;
+mod event;
 mod packet;
 mod session;
 
@@ -35,28 +37,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut handles: Vec<JoinHandle<Result<String, ClientError>>> = Vec::new();
 
-    let mut session_service = session::Service::new(HashMap::new());
+    let mut session_service = session::Service::new();
 
     start_client_connections(&mut handles, &mut session_service).await;
-
-    for session in session_service.all() {
-        // send client hello to the server
-        session_service
-            .send(session, &composer::ClientHello {}.compose())
-            .await
-            .expect("unable to send client hello packet to the server");
-
-        session_service
-            .send(
-                session,
-                &composer::AuthTicket {
-                    sso_ticket: session.ticket.as_str(),
-                }
-                .compose(),
-            )
-            .await
-            .expect("unable to send auth ticket packet to the server");
-    }
 
     while !handles.is_empty() {
         let (result, _, remaining) = select_all(handles).await;
@@ -66,7 +49,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 Ok(auth_ticket) => {
                     session_service.delete(&auth_ticket);
 
-                    println!("Task with auth ticket '{}' has been stopped", auth_ticket)
+                    println!("Task with auth ticket '{}' has been stopped. Session has been removed successfully.", auth_ticket)
                 }
 
                 Err(err) => {
@@ -108,14 +91,23 @@ async fn start_client_connections(
                 let auth_ticket = ticket.clone();
 
                 let (tx, rx): (Sender<Message>, Receiver<Message>) = mpsc::channel(1);
-                let session = session::Session { ticket, tx };
 
+                // create a new session
+                let session = Arc::new(session::Session {
+                    ticket,
+                    tx: tx.clone(),
+                });
+
+                // insert session
                 session_service.insert(session);
+
+                println!("Adding session for auth ticket {}", &auth_ticket);
 
                 handles.push(tokio::spawn(create_client_connection_handler(
                     uri,
                     auth_ticket,
                     rx,
+                    tx,
                 )));
             }
         }
@@ -128,10 +120,11 @@ async fn create_client_connection_handler(
     uri: String,
     auth_ticket: String,
     rx: Receiver<Message>,
+    tx: Sender<Message>,
 ) -> Result<String, ClientError> {
     match client::connect(uri).await {
         Ok(client) => {
-            client::handle(client, rx)
+            client::handle(client, rx, tx, &auth_ticket)
                 .await
                 .expect("unable to handle client connection");
 
