@@ -6,11 +6,11 @@ use tokio_tungstenite::tungstenite::Message;
 
 use crate::composer::{self, Composable};
 
-const PONG: u16 = 3928;
+const PING: u16 = 3928;
 
 pub async fn handle(header: u16, tx: &Sender<Message>) {
     match header {
-        PONG => tx
+        PING => tx
             .send(composer::Pong {}.compose())
             .await
             .expect("unable to send pong composer to the server"),
