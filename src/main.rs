@@ -11,6 +11,7 @@ use tokio_tungstenite::tungstenite::protocol::Message;
 
 use crate::errors::ClientError;
 
+mod api;
 mod app_config;
 mod client;
 mod composer;
@@ -18,7 +19,6 @@ mod errors;
 mod event;
 mod packet;
 mod session;
-mod web;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -50,8 +50,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 async fn webserver_handler(session_service: Arc<Mutex<session::Service>>) {
     let app = Router::new()
-        .route("/", get(web::home))
-        .route("/api/bots/available", get(web::available_bots))
+        .route("/", get(api::health::index))
+        .route("/api/bots/available", get(api::bot::available))
         .layer(Extension(session_service));
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:666").await.unwrap();
