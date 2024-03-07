@@ -37,7 +37,7 @@ pub struct Service {
 }
 
 impl Service {
-    pub fn new() -> Service {
+    pub fn new() -> Self {
         Service {
             items: RwLock::new(HashMap::new()),
         }
@@ -53,6 +53,12 @@ impl Service {
         let mut write_lock = self.items.write().unwrap();
 
         write_lock.remove(ticket);
+    }
+
+    pub fn online_bots(&self) -> usize {
+        let read_lock = self.items.read().unwrap();
+
+        read_lock.values().count()
     }
 
     pub async fn broadcast<F>(&self, msg: Message) {

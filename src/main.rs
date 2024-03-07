@@ -1,8 +1,7 @@
-use std::{collections::HashMap, sync::Arc};
+use std::sync::{Arc, Mutex};
 
-use composer::Composable;
+use axum::{routing::get, Extension, Router};
 use futures_util::future::select_all;
-use session::Session;
 use tokio::{
     sync::mpsc::{self, Receiver, Sender},
     task::JoinHandle,
@@ -19,6 +18,7 @@ mod errors;
 mod event;
 mod packet;
 mod session;
+mod web;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -36,24 +36,48 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("-------------------------------------------------------------------------------");
 
     let mut handles: Vec<JoinHandle<Result<String, ClientError>>> = Vec::new();
+    let session_service = Arc::new(Mutex::new(session::Service::new()));
 
-    let mut session_service = session::Service::new();
+    start_client_connections(&mut handles, session_service.clone()).await;
 
-    start_client_connections(&mut handles, &mut session_service).await;
+    let thread_handle = tokio::spawn(threads_handler(handles, session_service.clone()));
+    let webserver_handle = tokio::spawn(webserver_handler(session_service.clone()));
 
+    tokio::try_join!(thread_handle, webserver_handle).expect("unable to join threads");
+
+    Ok(())
+}
+
+async fn webserver_handler(session_service: Arc<Mutex<session::Service>>) {
+    let app = Router::new()
+        .route("/", get(web::home))
+        .route("/api/bots/available", get(web::available_bots))
+        .layer(Extension(session_service));
+
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:666").await.unwrap();
+
+    println!("Started webserver on localhost:666");
+
+    axum::serve(listener, app).await.unwrap();
+}
+
+async fn threads_handler(
+    mut handles: Vec<JoinHandle<Result<String, ClientError>>>,
+    session_service: Arc<Mutex<session::Service>>,
+) {
     while !handles.is_empty() {
         let (result, _, remaining) = select_all(handles).await;
 
         match result {
             Ok(connection_finished) => match connection_finished {
                 Ok(auth_ticket) => {
-                    session_service.delete(&auth_ticket);
+                    session_service.lock().unwrap().delete(&auth_ticket);
 
                     println!("Task with auth ticket '{}' has been stopped. Session has been removed successfully.", auth_ticket)
                 }
 
                 Err(err) => {
-                    session_service.delete(&err.auth_ticket);
+                    session_service.lock().unwrap().delete(&err.auth_ticket);
 
                     println!(
                         "Task with auth ticket '{}' stopped due to an error: {}",
@@ -69,19 +93,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         handles = remaining;
     }
-
-    Ok(())
 }
 
-// Start client connections.
-//
-// This function reads through all auth tickets provided by the config and creates a separate
-// thread for each of them.
-//
-// It will store all thread handles to &mut handles, and it will store all client sessions to &mut sessions.
 async fn start_client_connections(
     handles: &mut Vec<JoinHandle<Result<String, ClientError>>>,
-    session_service: &mut session::Service,
+    session_service: Arc<Mutex<session::Service>>,
 ) {
     match app_config::load() {
         Ok(config) => {
@@ -99,7 +115,7 @@ async fn start_client_connections(
                 });
 
                 // insert session
-                session_service.insert(session);
+                session_service.lock().unwrap().insert(session);
 
                 println!("Adding session for auth ticket {}", &auth_ticket);
 
