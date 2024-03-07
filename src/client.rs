@@ -61,7 +61,7 @@ async fn handle_read(
                 let data = msg.into_data();
 
                 // Create a new reader instance.
-                let mut reader = packet::reader::PacketReader::new(&data);
+                let mut reader = packet::Reader::new(&data);
 
                 if let Some(header) = reader.read_uint16() {
                     event::handle(header, &tx).await;

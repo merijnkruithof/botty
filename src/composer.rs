@@ -1,7 +1,7 @@
 use bytes::BytesMut;
 use tokio_tungstenite::tungstenite::Message;
 
-use crate::packet::writer::Writer;
+use crate::packet::Writer;
 
 pub trait Composable {
     fn compose(&self) -> Message;
