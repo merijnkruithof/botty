@@ -4,12 +4,14 @@ Pegasus is a Habbo load tester. It's able to spawn many bots concurrently.
 Roadmap:
 - [X] Authentication
 - [X] Ping pong
+- [X] REST API
 - [] Adding auth tickets through the API
 - [] Enter rooms
 - [] Updating look
 - [] Sending friend requests
 - [] Creating rooms
 - [] Divide and conquer (create rooms & spawn bots to it)
+- [] Proxy support
 
 ### Usage
 Download pegcli (https://github.com/nji-rem/pegcli) and compile it with the
