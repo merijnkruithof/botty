@@ -1,9 +1,15 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
-use axum::{routing::get, Extension, Router};
+use axum::{
+    routing::{get, post},
+    Extension, Router,
+};
 use futures_util::future::select_all;
 use tokio::{
-    sync::mpsc::{self, Receiver, Sender},
+    sync::{
+        mpsc::{self, Receiver, Sender},
+        Mutex,
+    },
     task::JoinHandle,
 };
 
@@ -50,8 +56,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 async fn webserver_handler(session_service: Arc<Mutex<session::Service>>) {
     let app = Router::new()
-        .route("/", get(api::health::index))
+        .route("/api/health", get(api::health::index))
         .route("/api/bots/available", get(api::bot::available))
+        .route(
+            "/api/bots/broadcast_message",
+            post(api::bot::broadcast_message),
+        )
         .layer(Extension(session_service));
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:666").await.unwrap();
@@ -71,13 +81,13 @@ async fn threads_handler(
         match result {
             Ok(connection_finished) => match connection_finished {
                 Ok(auth_ticket) => {
-                    session_service.lock().unwrap().delete(&auth_ticket);
+                    session_service.lock().await.delete(&auth_ticket).await;
 
                     println!("Task with auth ticket '{}' has been stopped. Session has been removed successfully.", auth_ticket)
                 }
 
                 Err(err) => {
-                    session_service.lock().unwrap().delete(&err.auth_ticket);
+                    session_service.lock().await.delete(&err.auth_ticket).await;
 
                     println!(
                         "Task with auth ticket '{}' stopped due to an error: {}",
@@ -115,7 +125,9 @@ async fn start_client_connections(
                 });
 
                 // insert session
-                session_service.lock().unwrap().insert(session);
+                let mut write_lock = session_service.lock().await;
+
+                write_lock.insert(session).await;
 
                 println!("Adding session for auth ticket {}", &auth_ticket);
 

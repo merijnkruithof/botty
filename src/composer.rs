@@ -49,3 +49,19 @@ impl Composable for Pong {
         Message::binary(buf.to_vec())
     }
 }
+
+pub struct RoomUserTalk {
+    pub msg: String,
+}
+
+impl Composable for RoomUserTalk {
+    fn compose(&self) -> Message {
+        let mut buf = BytesMut::new();
+
+        let mut packet_writer = Writer::new(&mut buf);
+        packet_writer.write_uint16(1314);
+        packet_writer.write_string(self.msg.as_str());
+
+        Message::binary(buf.to_vec())
+    }
+}

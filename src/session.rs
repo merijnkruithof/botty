@@ -1,10 +1,6 @@
-use std::{
-    collections::HashMap,
-    fmt,
-    sync::{Arc, RwLock},
-};
+use std::{collections::HashMap, fmt, sync::Arc};
 
-use tokio::sync::mpsc::Sender;
+use tokio::sync::{mpsc::Sender, RwLock};
 use tokio_tungstenite::tungstenite::Message;
 
 // Define your error types
@@ -43,26 +39,26 @@ impl Service {
         }
     }
 
-    pub fn insert(&mut self, session: Arc<Session>) {
-        let mut write_lock = self.items.write().unwrap();
+    pub async fn insert(&mut self, session: Arc<Session>) {
+        let mut write_lock = self.items.write().await;
 
         write_lock.insert(session.ticket.clone(), session);
     }
 
-    pub fn delete(&mut self, ticket: &String) {
-        let mut write_lock = self.items.write().unwrap();
+    pub async fn delete(&mut self, ticket: &String) {
+        let mut write_lock = self.items.write().await;
 
         write_lock.remove(ticket);
     }
 
-    pub fn online_bots(&self) -> usize {
-        let read_lock = self.items.read().unwrap();
+    pub async fn online_bots(&self) -> usize {
+        let read_lock = self.items.read().await;
 
         read_lock.values().count()
     }
 
-    pub async fn broadcast<F>(&self, msg: Message) {
-        let read_lock = self.items.read().unwrap();
+    pub async fn broadcast(&self, msg: Message) {
+        let read_lock = self.items.read().await;
 
         for (_, session) in read_lock.iter() {
             session
@@ -74,7 +70,7 @@ impl Service {
     }
 
     pub async fn send(&self, session: &Session, msg: &Message) -> Result<(), SessionError> {
-        let read_lock = self.items.read().unwrap();
+        let read_lock = self.items.read().await;
 
         if !read_lock.contains_key(&session.ticket) {
             return Err(SessionError::new("Session ticket not found in items"));
