@@ -47,3 +47,42 @@ pub async fn broadcast_message(
 
     StatusCode::OK
 }
+
+#[derive(Deserialize)]
+pub struct BroadcastEnterRoom {
+    room_id: u32,
+}
+
+pub async fn broadcast_enter_room(
+    session_service: Extension<Arc<Mutex<session::Service>>>,
+    Json(payload): Json<BroadcastEnterRoom>,
+) -> StatusCode {
+    let session_service_clone = session_service.clone();
+    let room_id = payload.room_id.clone();
+
+    tokio::spawn(async move {
+        let read_lock = session_service_clone.lock().await;
+
+        read_lock
+            .broadcast(composer::RequestRoomLoad { room_id }.compose())
+            .await;
+
+        read_lock
+            .broadcast(composer::RequestRoomHeightmap {}.compose())
+            .await;
+
+        read_lock
+            .broadcast(composer::FloorPlanEditorRequestDoorSettings {}.compose())
+            .await;
+
+        read_lock
+            .broadcast(composer::FloorPlanEditorRequestBlockedTiles {}.compose())
+            .await;
+
+        read_lock
+            .broadcast(composer::RequestRoomData { room_id }.compose())
+            .await;
+    });
+
+    StatusCode::OK
+}

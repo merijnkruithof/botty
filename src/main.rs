@@ -59,8 +59,12 @@ async fn webserver_handler(session_service: Arc<Mutex<session::Service>>) {
         .route("/api/health", get(api::health::index))
         .route("/api/bots/available", get(api::bot::available))
         .route(
-            "/api/bots/broadcast_message",
+            "/api/bots/broadcast/message",
             post(api::bot::broadcast_message),
+        )
+        .route(
+            "/api/bots/broadcast/enter_room",
+            post(api::bot::broadcast_enter_room),
         )
         .layer(Extension(session_service));
 

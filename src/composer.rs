@@ -65,3 +65,76 @@ impl Composable for RoomUserTalk {
         Message::binary(buf.to_vec())
     }
 }
+
+pub struct RequestRoomLoad {
+    pub room_id: u32,
+}
+
+impl Composable for RequestRoomLoad {
+    fn compose(&self) -> Message {
+        let mut buf = BytesMut::new();
+
+        let mut packet_writer = Writer::new(&mut buf);
+        packet_writer.write_uint16(2312);
+        packet_writer.write_uint32(self.room_id);
+        packet_writer.write_string("");
+
+        Message::binary(buf.to_vec())
+    }
+}
+
+pub struct RequestRoomHeightmap {}
+
+impl Composable for RequestRoomHeightmap {
+    fn compose(&self) -> Message {
+        let mut buf = BytesMut::new();
+
+        let mut packet_writer = Writer::new(&mut buf);
+        packet_writer.write_uint16(2300);
+
+        Message::binary(buf.to_vec())
+    }
+}
+
+pub struct FloorPlanEditorRequestDoorSettings {}
+
+impl Composable for FloorPlanEditorRequestDoorSettings {
+    fn compose(&self) -> Message {
+        let mut buf = BytesMut::new();
+
+        let mut packet_writer = Writer::new(&mut buf);
+        packet_writer.write_uint16(3559);
+
+        Message::binary(buf.to_vec())
+    }
+}
+
+pub struct FloorPlanEditorRequestBlockedTiles {}
+
+impl Composable for FloorPlanEditorRequestBlockedTiles {
+    fn compose(&self) -> Message {
+        let mut buf = BytesMut::new();
+
+        let mut packet_writer = Writer::new(&mut buf);
+        packet_writer.write_uint16(1687);
+
+        Message::binary(buf.to_vec())
+    }
+}
+
+pub struct RequestRoomData {
+    pub room_id: u32,
+}
+
+impl Composable for RequestRoomData {
+    fn compose(&self) -> Message {
+        let mut buf = BytesMut::new();
+
+        let mut packet_writer = Writer::new(&mut buf);
+        packet_writer.write_uint16(2230);
+        packet_writer.write_uint32(self.room_id);
+        packet_writer.write_uint32(0);
+
+        Message::binary(buf.to_vec())
+    }
+}
