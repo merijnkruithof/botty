@@ -15,7 +15,6 @@ Roadmap:
 
 ### Usage
 Download pegcli (https://github.com/nji-rem/pegcli) and compile it with the
-Go compiler.
+Go compiler. Clone this repository as well and compile it with the Rust compiler.
 
-Clone this repository as well and compile it. Run it and run the pegcli binary
-as well.
+There'll be binaries available for Mac (Intel and Sillicon), Windows, and Linux when I finished the roadmap.
