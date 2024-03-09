@@ -6,7 +6,7 @@ Roadmap:
 - [X] Ping pong
 - [ ] API call to add additional auth tickets
 - [ ] Adding auth tickets through the API
-- [ ] Enter rooms
+- [X] Enter rooms
 - [ ] Updating look
 - [ ] Sending friend requests
 - [ ] Creating rooms
