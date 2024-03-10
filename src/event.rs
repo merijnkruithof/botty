@@ -15,7 +15,7 @@ pub async fn handle(header: u16, tx: &Sender<Message>) {
             .await
             .expect("unable to send pong composer to the server"),
         _ => {
-            println!("No handler found for packet header {}", header);
+            // do nothing
         }
     }
 }

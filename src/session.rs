@@ -61,11 +61,9 @@ impl Service {
         let read_lock = self.items.read().await;
 
         for (_, session) in read_lock.iter() {
-            session
-                .tx
-                .send(msg.clone())
-                .await
-                .expect("unable to send message to channel");
+            session.tx.send(msg.clone()).await.unwrap_or_else(|error| {
+                eprintln!("unable to send packet to the server: {:?}", error);
+            });
         }
     }
 
@@ -76,11 +74,9 @@ impl Service {
             return Err(SessionError::new("Session ticket not found in items"));
         }
 
-        session
-            .tx
-            .send(msg.clone())
-            .await
-            .expect("unable to send message to channel");
+        session.tx.send(msg.clone()).await.unwrap_or_else(|error| {
+            eprintln!("unable to send packet to the server: {:?}", error);
+        });
 
         Ok(())
     }
