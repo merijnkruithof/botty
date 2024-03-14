@@ -1,9 +1,9 @@
 use std::{collections::HashMap, fmt, sync::Arc};
+use std::sync::atomic::AtomicBool;
 
 use tokio::sync::{mpsc::Sender, RwLock};
 use tokio_tungstenite::tungstenite::Message;
 
-// Define your error types
 #[derive(Debug)]
 pub struct SessionError {
     details: String,
@@ -26,6 +26,8 @@ impl fmt::Display for SessionError {
 pub struct Session {
     pub ticket: String,
     pub tx: Sender<Message>,
+    pub kill_sig_rx: tokio::sync::watch::Receiver<bool>,
+    pub kill_sig_tx: tokio::sync::watch::Sender<bool>,
 }
 
 pub struct Service {
@@ -39,7 +41,7 @@ impl Service {
         }
     }
 
-    pub async fn insert(&mut self, session: Arc<Session>) {
+    pub async fn add_session(&mut self, session: Arc<Session>) {
         let mut write_lock = self.items.write().await;
 
         write_lock.insert(session.ticket.clone(), session);

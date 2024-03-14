@@ -1,30 +1,17 @@
 use std::sync::Arc;
+use axum::routing::{get, post};
 
-use axum::{
-    routing::{get, post},
-    Extension, Router,
-};
-use futures_util::future::select_all;
-use tokio::{
-    sync::{
-        mpsc::{self, Receiver, Sender},
-        Mutex,
-    },
-    task::JoinHandle,
-};
-
-use tokio_tungstenite::tungstenite::protocol::Message;
-
-use crate::errors::ClientError;
+use tokio::sync::Mutex;
 
 mod api;
 mod app_config;
 mod client;
 mod composer;
-mod errors;
 mod event;
 mod packet;
 mod session;
+mod actions;
+mod connection;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -41,143 +28,43 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Developed by Merijn (Discord: merijnn)");
     println!("-------------------------------------------------------------------------------");
 
-    let mut handles: Vec<JoinHandle<Result<String, ClientError>>> = Vec::new();
+    let app_config = app_config::load().unwrap();
     let session_service = Arc::new(Mutex::new(session::Service::new()));
 
-    start_client_connections(&mut handles, session_service.clone()).await;
+    let mut connection_service = Arc::new(connection::Service::new(
+        connection::Config{ ws_link: app_config.uri, origin: app_config.origin },
+        session_service.clone()
+    ));
 
-    let thread_handle = tokio::spawn(threads_handler(handles, session_service.clone()));
-    let webserver_handle = tokio::spawn(webserver_handler(session_service.clone()));
+    for ticket in &app_config.tickets {
+        connection_service.new_client(ticket.clone()).await?;
+    }
 
-    tokio::try_join!(thread_handle, webserver_handle).expect("unable to join threads");
+    let mut web_service = actions::web::WebService::new(666);
+
+    // Configure routes
+    web_service.configure_routes(|router| {
+        return router
+            .route("/api/health", get(api::health::index))
+            .route("/api/bots/available", get(api::bot::available))
+            .route(
+                "/api/bots/broadcast/message",
+                post(api::bot::broadcast_message),
+            )
+            .route(
+                "/api/bots/broadcast/enter_room",
+                post(api::bot::broadcast_enter_room),
+            );
+    })?;
+
+    // Configure webservice extensions
+    web_service.configure_extensions(|router| {
+        return router
+            .layer(axum::Extension(session_service))
+            .layer(axum::Extension(connection_service));
+    })?;
+
+    web_service.start().await?;
 
     Ok(())
-}
-
-async fn webserver_handler(session_service: Arc<Mutex<session::Service>>) {
-    let app = Router::new()
-        .route("/api/health", get(api::health::index))
-        .route("/api/bots/available", get(api::bot::available))
-        .route(
-            "/api/bots/broadcast/message",
-            post(api::bot::broadcast_message),
-        )
-        .route(
-            "/api/bots/broadcast/enter_room",
-            post(api::bot::broadcast_enter_room),
-        )
-        .layer(Extension(session_service));
-
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:666").await.unwrap();
-
-    println!("Started webserver on localhost:666");
-
-    axum::serve(listener, app).await.unwrap();
-}
-
-async fn threads_handler(
-    mut handles: Vec<JoinHandle<Result<String, ClientError>>>,
-    session_service: Arc<Mutex<session::Service>>,
-) {
-    while !handles.is_empty() {
-        let (result, _, remaining) = select_all(handles).await;
-
-        match result {
-            Ok(connection_finished) => match connection_finished {
-                Ok(auth_ticket) => {
-                    session_service.lock().await.delete(&auth_ticket).await;
-
-                    println!("Task with auth ticket '{}' has been stopped. Session has been removed successfully.", auth_ticket)
-                }
-
-                Err(err) => {
-                    session_service.lock().await.delete(&err.auth_ticket).await;
-
-                    println!(
-                        "Task with auth ticket '{}' stopped due to an error: {}",
-                        &err.auth_ticket, err
-                    );
-                }
-            },
-
-            Err(err) => {
-                println!("Client wasn't able to connect with the server: {}", err)
-            }
-        }
-
-        handles = remaining;
-    }
-}
-
-async fn start_client_connections(
-    handles: &mut Vec<JoinHandle<Result<String, ClientError>>>,
-    session_service: Arc<Mutex<session::Service>>,
-) {
-    match app_config::load() {
-        Ok(config) => {
-            // Read all auth tickets from the config file and spawn client processes.
-            for ticket in config.tickets {
-                let uri = config.uri.clone();
-                let auth_ticket = ticket.clone();
-
-                let (tx, rx): (Sender<Message>, Receiver<Message>) = mpsc::channel(1);
-
-                // create a new session
-                let session = Arc::new(session::Session {
-                    ticket,
-                    tx: tx.clone(),
-                });
-
-                // insert session
-                let mut write_lock = session_service.lock().await;
-
-                write_lock.insert(session).await;
-
-                println!("Adding session for auth ticket {}", &auth_ticket);
-
-                handles.push(tokio::spawn(create_client_connection_handler(
-                    uri,
-                    auth_ticket,
-                    rx,
-                    tx,
-                )));
-            }
-        }
-
-        Err(e) => eprintln!("Failed to load config {}", e),
-    }
-}
-
-async fn create_client_connection_handler(
-    uri: String,
-    auth_ticket: String,
-    rx: Receiver<Message>,
-    tx: Sender<Message>,
-) -> Result<String, ClientError> {
-    match client::connect(uri).await {
-        Ok(client) => {
-            client::handle(client, rx, tx, &auth_ticket)
-                .await
-                .expect("unable to handle client connection");
-
-            println!(
-                "Connection with auth ticket '{}' closed. This ticket is not usable anymore.",
-                auth_ticket
-            );
-
-            Ok(auth_ticket)
-        }
-
-        Err(err) => {
-            eprintln!(
-                "An error occurred while trying to connect to the websocket server: {:?}",
-                err
-            );
-
-            return Err(ClientError::new(
-                "Unable to connect to the websocket server",
-                auth_ticket,
-            ));
-        }
-    }
 }

@@ -4,6 +4,7 @@ use serde::Deserialize;
 #[derive(Debug, Deserialize)]
 pub struct ServerConfig {
     pub uri: String,
+    pub origin: String,
     pub tickets: Vec<String>,
 }
 

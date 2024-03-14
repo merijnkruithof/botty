@@ -1,35 +1,22 @@
-use futures_util::{
-    stream::{SplitSink, SplitStream},
-    SinkExt, StreamExt,
-};
+use std::sync::Arc;
+use futures_util::{stream::{SplitSink, SplitStream}, SinkExt, StreamExt, };
+use tokio::{net::TcpStream, sync::{mpsc::Receiver, mpsc::Sender, watch}};
+use tokio_tungstenite::{connect_async, tungstenite::{handshake::client::Request, http::Uri, protocol::Message, Error}, MaybeTlsStream, WebSocketStream};
 
-use tokio::{
-    net::TcpStream,
-    sync::{mpsc::Receiver, mpsc::Sender, watch},
-};
-use tokio_tungstenite::{
-    connect_async,
-    tungstenite::{handshake::client::Request, http::Uri, protocol::Message, Error},
-    MaybeTlsStream, WebSocketStream,
-};
+use crate::{composer::{self, Composable}, event, packet};
+use anyhow::{anyhow, Result};
+use crate::session::Session;
 
-use crate::{
-    composer::{self, Composable},
-    event, packet,
-};
-
-pub async fn connect(ws_link: String) -> Result<WebSocketStream<MaybeTlsStream<TcpStream>>, Error> {
-    let uri = Uri::try_from(ws_link).expect("invalid uri");
+pub async fn connect(ws_link: String, origin: String) -> Result<WebSocketStream<MaybeTlsStream<TcpStream>>> {
+    let uri = Uri::try_from(ws_link)?;
 
     let request = Request::builder()
         .uri(uri)
-        .header("Origin", "http://localhost")
+        .header("Origin", origin)
         .body(())
         .expect("Failed to build request");
 
-    let (ws_stream, _) = connect_async(request).await.expect("Failed to connect");
-
-    println!("WebSocket handshake has been successfully completed");
+    let (ws_stream, _) = connect_async(request).await?;
 
     Ok(ws_stream)
 }
@@ -37,67 +24,85 @@ pub async fn connect(ws_link: String) -> Result<WebSocketStream<MaybeTlsStream<T
 async fn handle_read(
     mut reader: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
     tx: Sender<Message>,
-    shutdown_tx: tokio::sync::watch::Sender<bool>,
-) {
+    shutdown_tx: watch::Sender<bool>,
+    mut kill_sig: watch::Receiver<bool>,
+) -> Result<()> {
+    let shutdown_fn = ||  {
+        // consider not sending to the shutdown data as something unrecoverable. I'd rather kill
+        // the whole thread
+        shutdown_tx.send(true).unwrap();
+
+        println!("Reader closed, shutdown signal sent to listeners");
+    };
+
     loop {
-        let data = reader.next().await;
-        if data.is_none() {
-            shutdown_tx
-                .send(true)
-                .expect("unable to send data to the shutdown channel");
+        tokio::select! {
+            data = reader.next() => {
+                if let Some(Ok(msg)) = data {
+                    let handled_client_msg = handle_client_message(msg, tx.clone()).await;
 
-            break;
-        }
-
-        match data.unwrap() {
-            Ok(msg) => {
-                if msg.is_close() {
-                    shutdown_tx
-                        .send(true)
-                        .expect("unable to send data to the shutdown channel");
+                    if let Err(err) = handled_client_msg {
+                        shutdown_fn();
+                        break;
+                    }
+                } else {
+                    shutdown_tx.send(true)?;
                     break;
                 }
+            },
 
-                let data = msg.into_data();
-
-                // Create a new reader instance.
-                let mut reader = packet::Reader::new(&data);
-
-                if let Some(header) = reader.read_uint16() {
-                    event::handle(header, &tx).await;
+            _ = kill_sig.changed() => {
+                if *kill_sig.borrow() {
+                    // initiate shutdown. no need to handle shutdown_tx here; the writer listens to
+                    // kill_sig as well.
+                    println!("Kill sig triggered, reader is now closed.");
+                    break;
                 }
-            }
-
-            Err(err) => {
-                eprintln!("an error occurred while trying to read a packet: {:?}", err);
-
-                shutdown_tx
-                    .send(true)
-                    .expect("unable to send data to the shutdown channel");
-
-                break;
             }
         }
     }
+
+    Ok(())
+}
+
+async fn handle_client_message(msg: Message, tx: Sender<Message>) -> Result<()> {
+    if msg.is_close() {
+        return Err(anyhow!("Websocket connection is closed"));
+    }
+
+    let data = msg.into_data();
+
+    // Create a new reader instance.
+    let mut reader = packet::Reader::new(&data);
+
+    if let Some(header) = reader.read_uint16() {
+        event::handle(header, &tx).await;
+    }
+
+    Ok(())
 }
 
 async fn handle_write(
     mut writer: SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>,
-    mut ch: tokio::sync::mpsc::Receiver<Message>,
-    mut shutdown_rx: tokio::sync::watch::Receiver<bool>,
+    mut ch: Receiver<Message>,
+    mut shutdown_rx: watch::Receiver<bool>,
+    mut kill_sig: watch::Receiver<bool>,
 ) {
     loop {
         tokio::select! {
-            data = ch.recv() => {
-                match data {
-                    Some(msg) => {
-                        if let Err(err) = writer.send(msg).await {
-                            eprintln!("An error occurred while trying to send data to the websocket: {:?}", err);
-                            continue;
-                        }
-                    },
+            _ = kill_sig.changed() => {
+                if *kill_sig.borrow() {
+                    println!("Kill sig triggered, writer is killed");
+                    break;
+                }
+            }
 
-                    None => break
+            data = ch.recv() => {
+                if let Some(msg) = data {
+                    if let Err(err) = writer.send(msg).await {
+                        eprintln!("An error occurred while trying to send data to the websocket: {:?}", err);
+                        continue;
+                    }
                 }
             },
 
@@ -118,11 +123,11 @@ pub async fn handle(
     mut stream: WebSocketStream<MaybeTlsStream<TcpStream>>,
     rx: Receiver<Message>,
     tx: Sender<Message>,
-    auth_ticket: &str,
-) -> Result<(), Error> {
+    session: Arc<Session>,
+) -> Result<()> {
     let client_hello_composer = composer::ClientHello {};
     let auth_ticket_composer = composer::AuthTicket {
-        sso_ticket: auth_ticket,
+        sso_ticket: session.ticket.as_str(),
     };
 
     stream.send(client_hello_composer.compose()).await?;
@@ -132,8 +137,8 @@ pub async fn handle(
 
     let (shutdown_tx, shutdown_rx) = watch::channel(false);
 
-    let read_handle = tokio::spawn(handle_read(reader, tx, shutdown_tx));
-    let write_handle = tokio::spawn(handle_write(writer, rx, shutdown_rx.clone()));
+    let read_handle = tokio::spawn(handle_read(reader, tx, shutdown_tx, session.kill_sig_rx.clone()));
+    let write_handle = tokio::spawn(handle_write(writer, rx, shutdown_rx.clone(), session.kill_sig_rx.clone()));
 
     let _ = tokio::try_join!(write_handle, read_handle);
 
