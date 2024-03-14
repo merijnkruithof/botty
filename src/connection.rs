@@ -45,6 +45,12 @@ impl Service {
         let current_session = session.clone();
         let session_service = self.session_service.clone();
 
+        session_service
+            .lock()
+            .await
+            .add_session(current_session.clone())
+            .await;
+
         tokio::spawn(async move {
             // Establish a connection with the server
             let client = client::connect(ws_link, origin).await?;

@@ -44,8 +44,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Configure routes
     web_service.configure_routes(|router| {
-        return router
-            .route("/api/health", get(api::health::index))
+        // Health
+        let router = router.route("/api/health", get(api::health::index));
+
+        // Bot actions
+        let router = router
             .route("/api/bots/available", get(api::bot::available))
             .route(
                 "/api/bots/broadcast/message",
@@ -55,6 +58,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "/api/bots/broadcast/enter_room",
                 post(api::bot::broadcast_enter_room),
             );
+
+        // Session actions
+        let router = router
+            .route("/api/sessions/add", post(api::api_session::add))
+            .route("/api/sessions/kill", post(api::api_session::kill));
+
+        return router;
     })?;
 
     // Configure webservice extensions

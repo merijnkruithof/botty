@@ -3,6 +3,7 @@ use std::sync::atomic::AtomicBool;
 
 use tokio::sync::{mpsc::Sender, RwLock};
 use tokio_tungstenite::tungstenite::Message;
+use anyhow::{anyhow, Result};
 
 #[derive(Debug)]
 pub struct SessionError {
@@ -47,9 +48,20 @@ impl Service {
         write_lock.insert(session.ticket.clone(), session);
     }
 
+    pub async fn kill(&self, auth_ticket: String) -> Result<()> {
+        let read_lock = self.items.read().await;
+
+        let session = read_lock
+            .get(&auth_ticket)
+            .ok_or_else(|| anyhow!("No session found for auth ticket {}", &auth_ticket))?;
+
+        session.kill_sig_tx.send(true)?;
+
+        Ok(())
+    }
+
     pub async fn delete(&mut self, ticket: &String) {
         let mut write_lock = self.items.write().await;
-
         write_lock.remove(ticket);
     }
 
