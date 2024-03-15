@@ -29,7 +29,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("-------------------------------------------------------------------------------");
 
     let app_config = app_config::load().unwrap();
-    let session_service = Arc::new(Mutex::new(session::Service::new()));
+    let session_service = Arc::new(session::Service::new());
 
     let mut connection_service = Arc::new(connection::Service::new(
         connection::Config{ ws_link: app_config.uri, origin: app_config.origin },

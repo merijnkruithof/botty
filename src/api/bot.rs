@@ -16,11 +16,9 @@ pub struct AvailableBots {
 }
 
 pub async fn available(
-    session_service: Extension<Arc<Mutex<session::Service>>>,
+    session_service: Extension<Arc<session::Service>>,
 ) -> (StatusCode, Json<AvailableBots>) {
-    let read_lock = session_service.lock().await;
-
-    let n = read_lock.online_bots().await;
+    let n = session_service.online_bots().await;
 
     (StatusCode::OK, Json(AvailableBots { n }))
 }
@@ -31,16 +29,14 @@ pub struct BroadcastMessage {
 }
 
 pub async fn broadcast_message(
-    session_service: Extension<Arc<Mutex<session::Service>>>,
+    session_service: Extension<Arc<session::Service>>,
     Json(payload): Json<BroadcastMessage>,
 ) -> StatusCode {
     let session_service_clone = session_service.clone();
     let message_clone = payload.message.clone();
 
     tokio::spawn(async move {
-        let read_lock = session_service_clone.lock().await;
-
-        read_lock
+        session_service_clone
             .broadcast(composer::RoomUserTalk { msg: message_clone }.compose())
             .await;
     });
@@ -54,32 +50,30 @@ pub struct BroadcastEnterRoom {
 }
 
 pub async fn broadcast_enter_room(
-    session_service: Extension<Arc<Mutex<session::Service>>>,
+    session_service: Extension<Arc<session::Service>>,
     Json(payload): Json<BroadcastEnterRoom>,
 ) -> StatusCode {
     let session_service_clone = session_service.clone();
     let room_id = payload.room_id.clone();
 
     tokio::spawn(async move {
-        let read_lock = session_service_clone.lock().await;
-
-        read_lock
+        session_service_clone
             .broadcast(composer::RequestRoomLoad { room_id }.compose())
             .await;
 
-        read_lock
+        session_service_clone
             .broadcast(composer::RequestRoomHeightmap {}.compose())
             .await;
 
-        read_lock
+        session_service_clone
             .broadcast(composer::FloorPlanEditorRequestDoorSettings {}.compose())
             .await;
 
-        read_lock
+        session_service_clone
             .broadcast(composer::FloorPlanEditorRequestBlockedTiles {}.compose())
             .await;
 
-        read_lock
+        session_service_clone
             .broadcast(composer::RequestRoomData { room_id }.compose())
             .await;
     });

@@ -23,10 +23,8 @@ pub struct KillSession {
     auth_ticket: String,
 }
 
-pub async fn kill(session_service: Extension<Arc<Mutex<session::Service>>>, Json(payload): Json<KillSession>) -> StatusCode {
-    let read_lock = session_service.lock().await;
-
-    if let Err(err) = read_lock.kill(payload.auth_ticket).await {
+pub async fn kill(session_service: Extension<Arc<session::Service>>, Json(payload): Json<KillSession>) -> StatusCode {
+    if let Err(err) = session_service.kill(payload.auth_ticket) {
         eprintln!("{:?}", err);
 
         return StatusCode::INTERNAL_SERVER_ERROR;

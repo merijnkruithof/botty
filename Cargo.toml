@@ -31,3 +31,4 @@ hyper = "*"
 http = { version = "1", default-features = false, features = ["std"] }
 scopeguard = "1.2.0"
 anyhow = "1.0.81"
+dashmap = "5.5.3"

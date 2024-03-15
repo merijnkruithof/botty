@@ -13,13 +13,13 @@ pub struct Config {
 
 pub struct Service {
     config: Config,
-    session_service: Arc<Mutex<session::Service>>
+    session_service: Arc<session::Service>
 }
 
 impl Service {
     pub fn new(
         config: Config,
-        session_service: Arc<Mutex<session::Service>>,
+        session_service: Arc<session::Service>,
     ) -> Self {
         Service { config, session_service }
     }
@@ -45,11 +45,7 @@ impl Service {
         let current_session = session.clone();
         let session_service = self.session_service.clone();
 
-        session_service
-            .lock()
-            .await
-            .add_session(current_session.clone())
-            .await;
+        session_service.add_session(current_session.clone());
 
         tokio::spawn(async move {
             // Establish a connection with the server
@@ -61,8 +57,7 @@ impl Service {
             let result = client::handle(client, rx, tx, current_session.clone()).await;
 
             // Clean up when the connection just closed or when it has returned an error.
-            let mut write_lock = session_service.lock().await;
-            write_lock.delete(&current_session.ticket).await;
+            session_service.delete(&current_session.ticket);
 
             println!("Session with auth ticket {} dropped", &current_session.ticket);
 

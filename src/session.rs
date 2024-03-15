@@ -1,9 +1,9 @@
-use std::{collections::HashMap, fmt, sync::Arc};
-use std::sync::atomic::AtomicBool;
+use std::{fmt, sync::Arc};
 
-use tokio::sync::{mpsc::Sender, RwLock};
+use tokio::sync::{mpsc::Sender};
 use tokio_tungstenite::tungstenite::Message;
 use anyhow::{anyhow, Result};
+use dashmap::DashMap;
 
 #[derive(Debug)]
 pub struct SessionError {
@@ -32,26 +32,22 @@ pub struct Session {
 }
 
 pub struct Service {
-    items: RwLock<HashMap<String, Arc<Session>>>,
+    items: DashMap<String, Arc<Session>>,
 }
 
 impl Service {
     pub fn new() -> Self {
         Service {
-            items: RwLock::new(HashMap::new()),
+            items: DashMap::new(),
         }
     }
 
-    pub async fn add_session(&mut self, session: Arc<Session>) {
-        let mut write_lock = self.items.write().await;
-
-        write_lock.insert(session.ticket.clone(), session);
+    pub fn add_session(&self, session: Arc<Session>) {
+        self.items.insert(session.ticket.clone(), session);
     }
 
-    pub async fn kill(&self, auth_ticket: String) -> Result<()> {
-        let read_lock = self.items.read().await;
-
-        let session = read_lock
+    pub fn kill(&self, auth_ticket: String) -> Result<()> {
+        let session = self.items
             .get(&auth_ticket)
             .ok_or_else(|| anyhow!("No session found for auth ticket {}", &auth_ticket))?;
 
@@ -60,37 +56,28 @@ impl Service {
         Ok(())
     }
 
-    pub async fn delete(&mut self, ticket: &String) {
-        let mut write_lock = self.items.write().await;
-        write_lock.remove(ticket);
+    pub fn delete(&self, ticket: &String) {
+        self.items.remove(ticket);
     }
 
     pub async fn online_bots(&self) -> usize {
-        let read_lock = self.items.read().await;
-
-        read_lock.values().count()
+        return self.items.len();
     }
 
     pub async fn broadcast(&self, msg: Message) {
-        let read_lock = self.items.read().await;
-
-        for (_, session) in read_lock.iter() {
-            session.tx.send(msg.clone()).await.unwrap_or_else(|error| {
+        for entry in self.items.iter() {
+            entry.value().tx.send(msg.clone()).await.unwrap_or_else(|error| {
                 eprintln!("unable to send packet to the server: {:?}", error);
             });
         }
     }
 
-    pub async fn send(&self, session: &Session, msg: &Message) -> Result<(), SessionError> {
-        let read_lock = self.items.read().await;
-
-        if !read_lock.contains_key(&session.ticket) {
-            return Err(SessionError::new("Session ticket not found in items"));
+    pub async fn send(&self, session: &Session, msg: &Message) -> Result<()> {
+        if !self.items.contains_key(&session.ticket) {
+            return Err(anyhow!("Ticket does not exist"));
         }
 
-        session.tx.send(msg.clone()).await.unwrap_or_else(|error| {
-            eprintln!("unable to send packet to the server: {:?}", error);
-        });
+        session.tx.send(msg.clone()).await?;
 
         Ok(())
     }
