@@ -11,7 +11,7 @@ pub struct Home {
 }
 
 pub async fn index(session_service: Extension<Arc<session::Service>>) -> (StatusCode, Json<Home>) {
-    let online_bots = session_service.online_bots().await;
+    let online_bots = session_service.online_bots();
 
     let condition = if online_bots > 0 { "Healthy" } else { "Unhealthy" };
     (StatusCode::OK, Json(Home { condition, online_bots }))

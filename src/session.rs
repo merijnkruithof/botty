@@ -60,7 +60,7 @@ impl Service {
         self.items.remove(ticket);
     }
 
-    pub async fn online_bots(&self) -> usize {
+    pub fn online_bots(&self) -> usize {
         return self.items.len();
     }
 

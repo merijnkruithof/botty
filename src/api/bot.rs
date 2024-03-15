@@ -18,7 +18,7 @@ pub struct AvailableBots {
 pub async fn available(
     session_service: Extension<Arc<session::Service>>,
 ) -> (StatusCode, Json<AvailableBots>) {
-    let n = session_service.online_bots().await;
+    let n = session_service.online_bots();
 
     (StatusCode::OK, Json(AvailableBots { n }))
 }
