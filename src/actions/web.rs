@@ -1,5 +1,6 @@
 use anyhow::Result;
 use axum::Router;
+use tracing::info;
 
 pub struct WebService {
     pub port: usize,
@@ -34,7 +35,7 @@ impl WebService {
 
         let listener = tokio::net::TcpListener::bind(connection_str.clone()).await?;
 
-        println!("Created webserver listener {}", &connection_str);
+        info!("Webserver started on {}", &connection_str);
 
         axum::serve(listener, self.router.clone()).await.unwrap();
 

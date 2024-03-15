@@ -10,7 +10,9 @@ pub struct AddSession {
 }
 
 pub async fn add(connection_service: Extension<Arc<crate::connection::Service>>, Json(payload): Json<AddSession>) -> StatusCode {
-    if let Err(err) = connection_service.new_client(payload.auth_ticket).await {
+    if let Err(err) = connection_service.new_client(payload.auth_ticket.clone()).await {
+        tracing::error!("unable to add session {}, reason: {:?}", payload.auth_ticket, err);
+
         return StatusCode::INTERNAL_SERVER_ERROR;
     }
 
@@ -23,8 +25,8 @@ pub struct KillSession {
 }
 
 pub async fn kill(session_service: Extension<Arc<session::Service>>, Json(payload): Json<KillSession>) -> StatusCode {
-    if let Err(err) = session_service.kill(payload.auth_ticket) {
-        eprintln!("{:?}", err);
+    if let Err(err) = session_service.kill(payload.auth_ticket.clone()) {
+        tracing::error!("unable to kill session {}, reason: {:?}", payload.auth_ticket, err);
 
         return StatusCode::INTERNAL_SERVER_ERROR;
     }

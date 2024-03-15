@@ -51,7 +51,7 @@ impl Service {
             // Establish a connection with the server
             let client = client::connect(ws_link, origin).await?;
 
-            println!("Connection created for auth ticket {}", &current_session.ticket);
+            tracing::info!("Connection created for auth ticket {}", &current_session.ticket);
 
             // Handle the connection.
             let result = client::handle(client, rx, tx, current_session.clone()).await;
@@ -59,7 +59,7 @@ impl Service {
             // Clean up when the connection just closed or when it has returned an error.
             session_service.delete(&current_session.ticket);
 
-            println!("Session with auth ticket {} dropped", &current_session.ticket);
+            tracing::info!("Session with auth ticket {} dropped", &current_session.ticket);
 
             return result
         });

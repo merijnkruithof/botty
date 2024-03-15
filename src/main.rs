@@ -1,5 +1,7 @@
 use std::sync::Arc;
 use axum::routing::{get, post};
+use tracing::Level;
+use tracing_subscriber::FmtSubscriber;
 
 mod api;
 mod app_config;
@@ -25,6 +27,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Habbo Bot Commander - 2024 edition");
     println!("Developed by Merijn (Discord: merijnn)");
     println!("-------------------------------------------------------------------------------");
+    let subscriber = FmtSubscriber::builder()
+        .with_max_level(Level::TRACE)
+        .finish();
+
+    tracing::subscriber::set_global_default(subscriber).unwrap();
 
     let app_config = app_config::load().unwrap();
     let session_service = Arc::new(session::Service::new());

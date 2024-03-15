@@ -5,6 +5,8 @@ use tokio_tungstenite::{connect_async, tungstenite::{handshake::client::Request,
 
 use crate::{composer::{self, Composable}, event, packet};
 use anyhow::{anyhow, Result};
+use tracing::{error, info};
+use tracing::log::trace;
 use crate::session::Session;
 
 pub async fn connect(ws_link: String, origin: String) -> Result<WebSocketStream<MaybeTlsStream<TcpStream>>> {
@@ -32,7 +34,7 @@ async fn handle_read(
         // the whole thread
         shutdown_tx.send(true).unwrap();
 
-        println!("Reader closed, shutdown signal sent to listeners");
+        info!("Reader closed, shutdown signal sent to listeners");
     };
 
     loop {
@@ -55,7 +57,7 @@ async fn handle_read(
                 if *kill_sig.borrow() {
                     // initiate shutdown. no need to handle shutdown_tx here; the writer listens to
                     // kill_sig as well.
-                    println!("Kill sig triggered, reader is now closed.");
+                    info!("Kill sig triggered, reader is now closed.");
                     break;
                 }
             }
@@ -92,7 +94,7 @@ async fn handle_write(
         tokio::select! {
             _ = kill_sig.changed() => {
                 if *kill_sig.borrow() {
-                    println!("Kill sig triggered, writer is killed");
+                    info!("Kill sig triggered, writer is killed");
                     break;
                 }
             }
@@ -100,7 +102,7 @@ async fn handle_write(
             data = ch.recv() => {
                 if let Some(msg) = data {
                     if let Err(err) = writer.send(msg).await {
-                        eprintln!("An error occurred while trying to send data to the websocket: {:?}", err);
+                        error!("An error occurred while trying to send data to the websocket: {:?}", err);
                         continue;
                     }
                 }
@@ -108,7 +110,7 @@ async fn handle_write(
 
             _ = shutdown_rx.changed() => {
                 if *shutdown_rx.borrow() {
-                    println!("Writer closed, shutdown channel has been triggered");
+                    info!("Writer closed, shutdown channel has been triggered");
                     break;
                 }
             }

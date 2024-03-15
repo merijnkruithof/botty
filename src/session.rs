@@ -4,6 +4,7 @@ use tokio::sync::{mpsc::Sender};
 use tokio_tungstenite::tungstenite::Message;
 use anyhow::{anyhow, Result};
 use dashmap::DashMap;
+use tracing::error;
 
 #[derive(Debug)]
 pub struct SessionError {
@@ -67,7 +68,7 @@ impl Service {
     pub async fn broadcast(&self, msg: Message) {
         for entry in self.items.iter() {
             entry.value().tx.send(msg.clone()).await.unwrap_or_else(|error| {
-                eprintln!("unable to send packet to the server: {:?}", error);
+                error!("unable to send packet to the server: {:?}", error);
             });
         }
     }
