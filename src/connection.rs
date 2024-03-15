@@ -49,19 +49,27 @@ impl Service {
 
         tokio::spawn(async move {
             // Establish a connection with the server
-            let client = client::connect(ws_link, origin).await?;
+            return match client::connect(ws_link, origin).await {
+                Ok(client) => {
+                    tracing::info!("Connection created for auth ticket {}", &current_session.ticket);
 
-            tracing::info!("Connection created for auth ticket {}", &current_session.ticket);
+                    // Handle the connection.
+                    let result = client::handle(client, rx, tx, current_session.clone()).await;
 
-            // Handle the connection.
-            let result = client::handle(client, rx, tx, current_session.clone()).await;
+                    // Clean up when the connection just closed or when it has returned an error.
+                    session_service.delete(&current_session.ticket);
 
-            // Clean up when the connection just closed or when it has returned an error.
-            session_service.delete(&current_session.ticket);
+                    tracing::info!("Session with auth ticket {} dropped", &current_session.ticket);
 
-            tracing::info!("Session with auth ticket {} dropped", &current_session.ticket);
+                    Ok(result)
+                },
 
-            return result
+                Err(err) => {
+                    session_service.delete(&current_session.ticket);
+
+                    Err(err)
+                }
+            }
         });
 
         Ok(session)
