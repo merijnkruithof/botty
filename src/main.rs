@@ -27,6 +27,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Habbo Bot Commander - 2024 edition");
     println!("Developed by Merijn (Discord: merijnn)");
     println!("-------------------------------------------------------------------------------");
+
     let subscriber = FmtSubscriber::builder()
         .with_max_level(Level::TRACE)
         .finish();
