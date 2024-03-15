@@ -3,7 +3,6 @@ use std::sync::Arc;
 use axum::{Extension, Json};
 use http::StatusCode;
 use serde::{Deserialize, Serialize};
-use tokio::sync::Mutex;
 
 use crate::{
     composer::{self, Composable},

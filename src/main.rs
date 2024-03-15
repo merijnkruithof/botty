@@ -1,8 +1,6 @@
 use std::sync::Arc;
 use axum::routing::{get, post};
 
-use tokio::sync::Mutex;
-
 mod api;
 mod app_config;
 mod client;

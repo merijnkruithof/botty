@@ -2,7 +2,6 @@ use std::sync::{Arc};
 use axum::{Extension, Json};
 use http::StatusCode;
 use serde::Deserialize;
-use tokio::sync::Mutex;
 use crate::session;
 
 #[derive(Deserialize)]
