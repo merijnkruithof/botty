@@ -10,8 +10,7 @@ impl<'a> Reader<'a> {
         Reader {
             buffer,
 
-            // let's ignore the packet size for now. it's really a bad practice, because it could be used
-            // for serialization. but eh, fuck it.
+            // +4, because I ignore the packet size.
             position: 4,
         }
     }

@@ -118,9 +118,6 @@ async fn handle_write(
     }
 }
 
-// Handle takes care of handling the client to server connection.
-//
-// It enables client -> server communication, as well as server -> client communication. It spawns
 pub async fn handle(
     mut stream: WebSocketStream<MaybeTlsStream<TcpStream>>,
     rx: Receiver<Message>,
