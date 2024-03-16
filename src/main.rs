@@ -4,6 +4,7 @@ use axum::extract::State;
 use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
 use uuid::Uuid;
+use tower_http::cors::{CorsLayer};
 
 mod api;
 mod app_config;
@@ -36,19 +37,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let subscriber = FmtSubscriber::builder()
         .with_max_level(Level::TRACE)
         .finish();
+
     tracing::subscriber::set_global_default(subscriber).unwrap();
 
     let app_config = app_config::load().unwrap();
     let session_service = Arc::new(session::Service::new());
 
-    let mut connection_service = Arc::new(connection::Service::new(
+    let connection_service = Arc::new(connection::Service::new(
         connection::Config{ ws_link: app_config.uri, origin: app_config.origin },
         session_service.clone()
     ));
-
-    for ticket in &app_config.tickets {
-        connection_service.new_client(ticket.clone()).await?;
-    }
 
     let mut web_service = actions::web::WebService::new(666);
 
@@ -72,6 +70,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Session actions
         let router = router
             .route("/api/sessions/add", post(api::api_session::add))
+            .route("/api/sessions/add_many", post(api::api_session::add_many))
             .route("/api/sessions/kill", post(api::api_session::kill));
 
         return router;
@@ -88,6 +87,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         return router
             .layer(axum::Extension(session_service))
             .layer(axum::Extension(connection_service))
+            .layer(CorsLayer::permissive())
             .route_layer(axum::middleware::from_fn_with_state(app_state.clone(), api::middleware::auth::handle));
     })?;
 

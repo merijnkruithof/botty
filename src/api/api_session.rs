@@ -20,6 +20,21 @@ pub async fn add(connection_service: Extension<Arc<crate::connection::Service>>,
 }
 
 #[derive(Deserialize)]
+pub struct AddSessionMany {
+    tickets: Vec<String>
+}
+
+pub async fn add_many(connection_service: Extension<Arc<crate::connection::Service>>, Json(payload): Json<AddSessionMany>) -> StatusCode {
+    for ticket in payload.tickets {
+        if let Err(err) = connection_service.new_client(ticket.clone()).await {
+            tracing::error!("unable to add session {}, reason: {:?}", ticket.clone(), err);
+        }
+    }
+
+    StatusCode::OK
+}
+
+#[derive(Deserialize)]
 pub struct KillSession {
     auth_ticket: String,
 }

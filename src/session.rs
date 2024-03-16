@@ -57,6 +57,10 @@ impl Service {
         Ok(())
     }
 
+    pub fn has(&self, ticket: &String) -> bool {
+        self.items.contains_key(ticket)
+    }
+
     pub fn delete(&self, ticket: &String) {
         self.items.remove(ticket);
     }

@@ -1,7 +1,8 @@
 use axum::{extract::Request, http, middleware::Next, response::Response};
 use axum::extract::State;
-use http::{HeaderMap, StatusCode};
+use http::{HeaderMap, Method, StatusCode};
 use anyhow::{anyhow, Result};
+use http::header::ORIGIN;
 use tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode::Status;
 use tracing::error;
 
@@ -13,6 +14,11 @@ pub async fn handle(
     request: Request,
     next: Next,
 ) -> Result<Response, StatusCode> {
+    if request.method().as_str() == "OPTIONS" {
+        let response = next.run(request).await;
+        return Ok(response);
+    }
+
     return match get_token_from_headers(&headers) {
         Ok(token) => {
             if token == state.auth_token {

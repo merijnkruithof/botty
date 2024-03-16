@@ -4,7 +4,7 @@ use tokio::sync::mpsc::{Receiver, Sender};
 use tokio_tungstenite::tungstenite::Message;
 use crate::{client, session};
 use crate::session::Session;
-use anyhow::{Result};
+use anyhow::{anyhow, Result};
 
 pub struct Config {
     pub(crate) ws_link: String,
@@ -25,6 +25,10 @@ impl Service {
     }
 
     pub async fn new_client(&self, auth_ticket: String) -> Result<Arc<Session>> {
+        if self.session_service.has(&auth_ticket) {
+            return Err(anyhow!("Session already exists"))
+        }
+
         // Create a new channel for packet communication.
         let (tx, rx): (Sender<Message>, Receiver<Message>) = mpsc::channel(1);
 
@@ -66,6 +70,8 @@ impl Service {
 
                 Err(err) => {
                     session_service.delete(&current_session.ticket);
+
+                    tracing::info!("Session with auth ticket {} dropped", &current_session.ticket);
 
                     Err(err)
                 }
