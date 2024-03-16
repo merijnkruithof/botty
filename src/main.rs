@@ -1,7 +1,9 @@
 use std::sync::Arc;
 use axum::routing::{get, post};
-use tracing::Level;
+use axum::extract::State;
+use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
+use uuid::Uuid;
 
 mod api;
 mod app_config;
@@ -12,6 +14,9 @@ mod packet;
 mod session;
 mod actions;
 mod connection;
+
+#[derive(Clone)]
+struct AppState {}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -31,7 +36,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let subscriber = FmtSubscriber::builder()
         .with_max_level(Level::TRACE)
         .finish();
-
     tracing::subscriber::set_global_default(subscriber).unwrap();
 
     let app_config = app_config::load().unwrap();
@@ -75,9 +79,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Configure webservice extensions
     web_service.configure_extensions(|router| {
+        let app_state = api::app_state::AppState{
+            auth_token: Uuid::new_v4().to_string(),
+        };
+
+        info!("Created auth token {}", &app_state.auth_token);
+
         return router
             .layer(axum::Extension(session_service))
-            .layer(axum::Extension(connection_service));
+            .layer(axum::Extension(connection_service))
+            .route_layer(axum::middleware::from_fn_with_state(app_state.clone(), api::middleware::auth::handle));
     })?;
 
     web_service.start().await?;

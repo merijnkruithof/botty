@@ -1,6 +1,9 @@
+use std::sync::Arc;
 use anyhow::Result;
-use axum::Router;
+use axum::{middleware, Router};
+use tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode::Extension;
 use tracing::info;
+use uuid::Uuid;
 
 pub struct WebService {
     pub port: usize,
@@ -30,7 +33,7 @@ impl WebService {
         Ok(())
     }
 
-    pub async fn start(&self) -> Result<()> {
+    pub async fn start(&mut self) -> Result<()> {
         let connection_str = format!("0.0.0.0:{}", self.port);
 
         let listener = tokio::net::TcpListener::bind(connection_str.clone()).await?;
