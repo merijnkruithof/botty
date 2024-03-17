@@ -1,10 +1,12 @@
 use std::sync::Arc;
+use std::time::Duration;
 use futures_util::{stream::{SplitSink, SplitStream}, SinkExt, StreamExt, };
 use tokio::{net::TcpStream, sync::{mpsc::Receiver, mpsc::Sender, watch}};
 use tokio_tungstenite::{connect_async, tungstenite::{handshake::client::Request, http::Uri, protocol::Message, Error}, MaybeTlsStream, WebSocketStream};
 
 use crate::{composer::{self, Composable}, event, packet};
 use anyhow::{anyhow, Result};
+use tokio::time::timeout;
 use tracing::{error, info};
 use tracing::log::trace;
 use crate::session::Session;
@@ -18,9 +20,13 @@ pub async fn connect(ws_link: String, origin: String) -> Result<WebSocketStream<
         .body(())
         .expect("Failed to build request");
 
-    let (ws_stream, _) = connect_async(request).await?;
+    let connect_future = connect_async(request);
 
-    Ok(ws_stream)
+    match timeout(Duration::from_secs(2), connect_future).await {
+        Ok(Ok((ws_stream, _))) => Ok(ws_stream),
+        Ok(Err(e)) => Err(anyhow!("WebSocket connection error: {}", e)),
+        Err(_) => Err(anyhow!("WebSocket connection timeout")),
+    }
 }
 
 async fn handle_read(

@@ -6,30 +6,23 @@ use anyhow::{anyhow, Result};
 use dashmap::DashMap;
 use tracing::error;
 
-#[derive(Debug)]
-pub struct SessionError {
-    details: String,
-}
-
-impl SessionError {
-    fn new(msg: &str) -> SessionError {
-        SessionError {
-            details: msg.to_string(),
-        }
-    }
-}
-
-impl fmt::Display for SessionError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.details)
-    }
-}
-
 pub struct Session {
     pub ticket: String,
     pub tx: Sender<Message>,
     pub kill_sig_rx: tokio::sync::watch::Receiver<bool>,
     pub kill_sig_tx: tokio::sync::watch::Sender<bool>,
+}
+
+pub struct Factory { }
+
+impl Factory {
+    pub fn new() -> Self {
+        Factory{}
+    }
+
+    pub fn make(&self) -> Arc<Service> {
+        Arc::new(Service::new())
+    }
 }
 
 pub struct Service {

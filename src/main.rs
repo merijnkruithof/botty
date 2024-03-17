@@ -1,10 +1,11 @@
 use std::sync::Arc;
 use axum::routing::{get, post};
 use axum::extract::State;
-use tracing::{info, Level};
+use tracing::{error, info, Level};
 use tracing_subscriber::FmtSubscriber;
 use uuid::Uuid;
 use tower_http::cors::{CorsLayer};
+use crate::connection::Config;
 
 mod api;
 mod app_config;
@@ -15,7 +16,6 @@ mod packet;
 mod session;
 mod actions;
 mod connection;
-
 #[derive(Clone)]
 struct AppState {}
 
@@ -30,7 +30,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
    |  |      |  `---.|  '-'  |  |  | |  |\       /\  '-'(_ .'\       /
    `--'      `------' `-----'   `--' `--' `-----'  `-----'    `-----'  "#;
     println!("{}", ascii_art);
-    println!("Habbo Bot Commander - 2024 edition");
+    println!("Habbo Load Tester");
     println!("Developed by Merijn (Discord: merijnn)");
     println!("-------------------------------------------------------------------------------");
 
@@ -41,14 +41,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing::subscriber::set_global_default(subscriber).unwrap();
 
     let app_config = app_config::load().unwrap();
-    let session_service = Arc::new(session::Service::new());
+    let session_factory = Arc::new(session::Factory::new());
 
-    let connection_service = Arc::new(connection::Service::new(
-        connection::Config{ ws_link: app_config.uri, origin: app_config.origin },
-        session_service.clone()
-    ));
+    let connection_service = Arc::new(connection::Service::new(session_factory.clone()));
+    let mut web_service = actions::web::WebService::new();
 
-    let mut web_service = actions::web::WebService::new(666);
+    if app_config.use_default_handlers {
+        for handler in app_config.handlers {
+            let name = handler.name.clone();
+            let config = Config {
+                ws_link: handler.ws_link.clone(),
+                origin: handler.origin.clone()
+            };
+
+            let connection_service_clone = connection_service.clone();
+
+            tokio::spawn(async move {
+                if let Err(err) = connection_service_clone.make_handler(name.clone(), config).await {
+                    error!("Unable to use default handler {}: {:?}", name.clone(), err);
+                }
+            });
+        }
+    }
 
     // Configure routes
     web_service.configure_routes(|router| {
@@ -57,7 +71,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         // Bot actions
         let router = router
-            .route("/api/bots/available", get(api::bot::available))
+            .route("/api/bots/available", post(api::bot::available))
             .route(
                 "/api/bots/broadcast/message",
                 post(api::bot::broadcast_message),
@@ -66,6 +80,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "/api/bots/broadcast/enter_room",
                 post(api::bot::broadcast_enter_room),
             );
+
+        // Connection actions
+        let router = router
+            .route("/api/hotels", post(api::hotel::list))
+            .route("/api/add_hotel", post(api::hotel::add_hotel));
 
         // Session actions
         let router = router
@@ -79,19 +98,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Configure webservice extensions
     web_service.configure_extensions(|router| {
         let app_state = api::app_state::AppState{
-            auth_token: Uuid::new_v4().to_string(),
+            auth_token: app_config.auth_token.clone(),
         };
 
-        info!("Created auth token {}", &app_state.auth_token);
+        info!("Using auth token {}", &app_state.auth_token);
 
         return router
-            .layer(axum::Extension(session_service))
+            .layer(axum::Extension(session_factory))
             .layer(axum::Extension(connection_service))
             .layer(CorsLayer::permissive())
             .route_layer(axum::middleware::from_fn_with_state(app_state.clone(), api::middleware::auth::handle));
     })?;
 
-    web_service.start().await?;
+    web_service.start(app_config.webserver.clone()).await?;
 
     Ok(())
 }

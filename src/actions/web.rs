@@ -6,13 +6,12 @@ use tracing::info;
 use uuid::Uuid;
 
 pub struct WebService {
-    pub port: usize,
     router: Router,
 }
 
 impl WebService {
-    pub fn new(port: usize) -> Self {
-        WebService{ port, router: Router::new() }
+    pub fn new() -> Self {
+        WebService{ router: Router::new() }
     }
 
     pub fn configure_routes<F>(&mut self, router: F) -> Result<()>
@@ -33,12 +32,10 @@ impl WebService {
         Ok(())
     }
 
-    pub async fn start(&mut self) -> Result<()> {
-        let connection_str = format!("0.0.0.0:{}", self.port);
+    pub async fn start(&mut self, connection_string: String) -> Result<()> {
+        let listener = tokio::net::TcpListener::bind(&connection_string).await?;
 
-        let listener = tokio::net::TcpListener::bind(connection_str.clone()).await?;
-
-        info!("Webserver started on {}", &connection_str);
+        info!("Webserver started on {}", &connection_string);
 
         axum::serve(listener, self.router.clone()).await.unwrap();
 

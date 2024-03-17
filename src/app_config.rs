@@ -2,10 +2,18 @@ use config::{Config, ConfigError, File};
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
-pub struct ServerConfig {
-    pub uri: String,
+pub struct Handler {
+    pub name: String,
+    pub ws_link: String,
     pub origin: String,
-    pub tickets: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ServerConfig {
+    pub webserver: String,
+    pub auth_token: String,
+    pub use_default_handlers: bool,
+    pub handlers: Vec<Handler>
 }
 
 pub fn load() -> Result<ServerConfig, ConfigError> {
