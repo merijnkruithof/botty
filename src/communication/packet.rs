@@ -27,6 +27,35 @@ impl Reader {
             None
         }
     }
+
+    pub fn read_uint32(&mut self) -> Option<u32> {
+        if self.position + 4 <= self.buffer.len() {
+            let result = u32::from_be_bytes([
+                self.buffer[self.position],
+                self.buffer[self.position + 1],
+                self.buffer[self.position + 2],
+                self.buffer[self.position + 3]
+            ]);
+
+            self.position += 4;
+
+            Some(result)
+        } else {
+            None
+        }
+    }
+
+    pub fn read_bool(&mut self) -> Option<bool> {
+        if self.position + 1 <= self.buffer.len() {
+            let result = self.buffer[self.position + 1];
+
+            self.position += 1;
+
+            Some(result == 1)
+        } else {
+            None
+        }
+    }
 }
 
 pub struct Writer<'a> {

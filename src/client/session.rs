@@ -9,6 +9,7 @@ use std::{fmt};
 use std::sync::atomic::AtomicBool;
 
 use tokio::sync::{RwLock};
+use crate::client;
 use crate::client::session;
 
 pub struct Factory {}
@@ -22,7 +23,8 @@ impl Factory {
         Arc::new(Session {
             ticket,
             packet_tx,
-            kill_sig_rx
+            kill_sig_rx,
+            room: Arc::new(RwLock::new(None))
         })
     }
 }
@@ -37,6 +39,16 @@ pub struct Session {
 
     // kill_sig_rx contains true if the connection has been killed.
     pub kill_sig_rx: watch::Receiver<bool>,
+
+    pub room: Arc<RwLock<Option<client::room::Room>>>
+}
+
+impl Session {
+    pub async fn set_room(&self, room: client::room::Room) {
+        let mut write_lock = self.room.write().await;
+
+        *write_lock = Some(room);
+    }
 }
 
 pub struct SessionServiceFactory { }

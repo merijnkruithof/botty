@@ -14,15 +14,7 @@ pub async fn broadcast_enter(room_id: u32, session_service: Arc<Service>) -> Res
 
         tokio::spawn(async move{
             session_service_clone.send(&session_clone, composer::RequestRoomLoad { room_id: room_id_clone }.compose()).await.unwrap();
-
-            // session_service_clone.send(&session_clone, composer::FloorPlanEditorRequestDoorSettings {}.compose()).await.unwrap();
-            // sleep(Duration::from_millis(100)).await;
-            // session_service_clone.send(&session_clone, composer::FloorPlanEditorRequestBlockedTiles {}.compose()).await.unwrap();
-            // sleep(Duration::from_millis(100)).await;
-            // session_service_clone.send(&session_clone, composer::RequestRoomData { room_id: room_id_clone }.compose()).await.unwrap();
-            // sleep(Duration::from_millis(100)).await;
-            //
-            // session_clone.is_in_room.store(true, Ordering::Relaxed);
+            session_service_clone.send(&session_clone, composer::RequestRoomData { room_id: room_id_clone }.compose()).await.unwrap();
         });
     }
 

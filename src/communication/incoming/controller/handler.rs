@@ -22,45 +22,25 @@ impl Factory {
     pub fn make_controller(&self, header: u16, session_service: Arc<session::Service>) -> Result<Controller> {
         return match(header) {
             Messages::PING => Ok(Controller::Ping(controller::ping::PingHandler::new(session_service))),
+            Messages::ROOM_MODEL => Ok(Controller::RoomModel(controller::room_model::RoomModelHandler::new(session_service))),
+            Messages::ROOM_LOAD => Ok(Controller::RoomLoad(controller::room_load::RoomLoadedHandler::new(session_service))),
             _ => Err(anyhow!("No controller found for header {}", header))
         }
     }
 }
 
 pub enum Controller {
-    Ping(controller::ping::PingHandler)
+    Ping(controller::ping::PingHandler),
+    RoomModel(controller::room_model::RoomModelHandler),
+    RoomLoad(controller::room_load::RoomLoadedHandler)
 }
 
 impl Controller {
-    // return match header {
-//     PING => tx.send(composer::Pong {}.compose()).await.unwrap(),
-//
-//     ROOM_READY => {
-//         tx.send(composer::RequestRoomHeightmap {}.compose()).await.unwrap();
-//
-//         // useEffect(() =>
-//         //  {
-//         //  SendMessageComposer(new GetRoomEntryTileMessageComposer()); (FloorPlanEditorRequestDoorSettings)
-//         //  SendMessageComposer(new GetOccupiedTilesMessageComposer()) (FloorPlanEditorRequestBlockedTiles).
-//         //
-//         //   Can be pretty useful later tbh
-//         //  ... }
-//         //
-//         tx.send(composer::FloorPlanEditorRequestDoorSettings{}.compose()).await.unwrap();
-//         tx.send(composer::FloorPlanEditorRequestBlockedTiles{}.compose()).await.unwrap();
-//
-//         debug!("Handled packet RoomReady (id: 2031)");
-//     },
-//
-//     ROOM_INFO_OWNER => tx.send(composer::RequestRoomData{  }).unwrap()
-//
-//     _ => {
-//         // do nothing
-//     }
-// }
     pub async fn handle(&self, session: Arc<Session>, reader: Reader) -> Result<()> {
         match self {
-            Controller::Ping(handler) => handler.handle(session, reader).await
+            Controller::Ping(handler) => handler.handle(session, reader).await,
+            Controller::RoomModel(handler) => handler.handle(session, reader).await,
+            Controller::RoomLoad(handler) => handler.handle(session, reader).await
         }
     }
 }
