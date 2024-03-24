@@ -1,12 +1,12 @@
 use bytes::{BufMut, BytesMut};
 
-pub struct Reader<'a> {
-    buffer: &'a Vec<u8>,
+pub struct Reader {
+    buffer: Vec<u8>,
     position: usize,
 }
 
-impl<'a> Reader<'a> {
-    pub fn new(buffer: &'a Vec<u8>) -> Self {
+impl Reader {
+    pub fn new(buffer: Vec<u8>) -> Self {
         Reader {
             buffer,
 

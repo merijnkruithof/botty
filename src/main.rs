@@ -1,21 +1,18 @@
 use std::sync::Arc;
 use axum::routing::{get, post};
 use axum::extract::State;
-use tracing::{error, info, Level};
+use tracing::{debug, error, info, Level};
 use tracing_subscriber::FmtSubscriber;
 use uuid::Uuid;
 use tower_http::cors::{CorsLayer};
-use crate::connection::Config;
+use crate::api::actions::web::WebService;
 
 mod api;
 mod app_config;
 mod client;
-mod composer;
-mod event;
-mod packet;
-mod session;
-mod actions;
-mod connection;
+mod communication;
+mod retro;
+
 #[derive(Clone)]
 struct AppState {}
 
@@ -40,26 +37,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     tracing::subscriber::set_global_default(subscriber).unwrap();
 
-    let app_config = app_config::load().unwrap();
-    let session_factory = Arc::new(session::Factory::new());
+    let retro_manager = Arc::new(retro::Manager::new());
 
-    let connection_service = Arc::new(connection::Service::new(session_factory.clone()));
-    let mut web_service = actions::web::WebService::new();
+    let app_config = app_config::load().unwrap();
+
+    let mut web_service = WebService::new();
 
     if app_config.use_default_handlers {
         for handler in app_config.handlers {
             let name = handler.name.clone();
-            let config = Config {
-                ws_link: handler.ws_link.clone(),
-                origin: handler.origin.clone()
-            };
+            let ws_link = handler.ws_link.clone();
+            let origin = handler.origin.clone();
 
-            let connection_service_clone = connection_service.clone();
+            let retro_manager_clone = retro_manager.clone();
 
             tokio::spawn(async move {
-                if let Err(err) = connection_service_clone.make_handler(name.clone(), config).await {
-                    error!("Unable to use default handler {}: {:?}", name.clone(), err);
-                }
+                let hotel_manager = Arc::new(client::hotel::Builder::new()
+                    .with_ws_config(ws_link, origin)
+                    .build().unwrap());
+
+                retro_manager_clone.add_hotel(name, hotel_manager.clone()).await.unwrap();
             });
         }
     }
@@ -79,7 +76,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .route(
                 "/api/bots/broadcast/enter_room",
                 post(api::bot::broadcast_enter_room),
-            );
+            )
+            .route("/api/bots/broadcast/walk", post(api::bot::broadcast_walk));
 
         // Connection actions
         let router = router
@@ -89,8 +87,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Session actions
         let router = router
             .route("/api/sessions/add", post(api::api_session::add))
-            .route("/api/sessions/add_many", post(api::api_session::add_many))
-            .route("/api/sessions/kill", post(api::api_session::kill));
+            .route("/api/sessions/add_many", post(api::api_session::add_many));
 
         return router;
     })?;
@@ -104,8 +101,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         info!("Using auth token {}", &app_state.auth_token);
 
         return router
-            .layer(axum::Extension(session_factory))
-            .layer(axum::Extension(connection_service))
+            .layer(axum::Extension(retro_manager))
             .layer(CorsLayer::permissive())
             .route_layer(axum::middleware::from_fn_with_state(app_state.clone(), api::middleware::auth::handle));
     })?;

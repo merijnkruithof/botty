@@ -2,7 +2,6 @@ use std::sync::{Arc};
 use axum::{Extension, Json};
 use http::StatusCode;
 use serde::Serialize;
-use crate::session;
 
 #[derive(Serialize)]
 pub struct Home {
