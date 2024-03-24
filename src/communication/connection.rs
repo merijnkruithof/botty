@@ -64,7 +64,6 @@ impl Receiver {
         Ok(())
     }
 
-    //         // let read_handle = tokio::spawn(self.handle_read(reader, session.packet_tx.clone(), shutdown_tx, session.kill_sig_rx.clone()));
     pub async fn receive(&self, mut reader: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>, session: Arc<Session>, cancellation: watch::Sender<bool>) -> Result<()> {
         let mut kill_sig = session.kill_sig_rx.clone();
 

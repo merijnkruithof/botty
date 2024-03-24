@@ -1,7 +1,6 @@
 use std::sync::Arc;
 use anyhow::{anyhow, Result};
 use crate::client;
-use crate::client::hotel;
 use crate::client::session::Session;
 use crate::communication::incoming::{controller};
 use crate::communication::packet::Reader;
@@ -20,7 +19,7 @@ impl Handler {
         let mut reader = Reader::new(packet);
 
         if let Some(header) = reader.read_uint16() {
-            if let Ok(controller) = self.controller_factory.make_controller(header) {
+            if let Ok(controller) = self.controller_factory.make_controller(header, self.session_service.clone()) {
                 let _ = controller.handle(session, reader).await?;
             }
 

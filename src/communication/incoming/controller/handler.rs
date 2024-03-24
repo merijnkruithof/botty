@@ -1,11 +1,14 @@
 use std::sync::Arc;
 use anyhow::{anyhow, Result};
+use crate::client::session;
 use crate::client::session::Session;
 use crate::communication::incoming::controller;
 use crate::communication::incoming::messages::Messages;
 use crate::communication::packet::Reader;
 
 pub trait Handler {
+    fn new(session_service: Arc<session::Service>) -> Self;
+
     async fn handle(&self, session: Arc<Session>, reader: Reader) -> Result<()>;
 }
 
@@ -16,9 +19,9 @@ impl Factory {
         Factory {}
     }
 
-    pub fn make_controller(&self, header: u16) -> Result<Controller> {
+    pub fn make_controller(&self, header: u16, session_service: Arc<session::Service>) -> Result<Controller> {
         return match(header) {
-            Messages::PING => Ok(Controller::Ping(controller::ping::PingHandler { })),
+            Messages::PING => Ok(Controller::Ping(controller::ping::PingHandler::new(session_service))),
             _ => Err(anyhow!("No controller found for header {}", header))
         }
     }
