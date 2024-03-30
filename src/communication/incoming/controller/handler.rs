@@ -24,6 +24,9 @@ impl Factory {
             Messages::PING => Ok(Controller::Ping(controller::ping::PingHandler::new(session_service))),
             Messages::ROOM_MODEL => Ok(Controller::RoomModel(controller::room_model::RoomModelHandler::new(session_service))),
             Messages::ROOM_LOAD => Ok(Controller::RoomLoad(controller::room_load::RoomLoadedHandler::new(session_service))),
+            Messages::ROOM_USER_STATUS => Ok(Controller::RoomUserStatus(controller::room_user_status::RoomUserStatusHandler::new(session_service))),
+            Messages::ROOM_USERS => Ok(Controller::RoomUsers(controller::room_users::RoomUsersHandler::new(session_service))),
+
             _ => Err(anyhow!("No controller found for header {}", header))
         }
     }
@@ -32,7 +35,9 @@ impl Factory {
 pub enum Controller {
     Ping(controller::ping::PingHandler),
     RoomModel(controller::room_model::RoomModelHandler),
-    RoomLoad(controller::room_load::RoomLoadedHandler)
+    RoomLoad(controller::room_load::RoomLoadedHandler),
+    RoomUserStatus(controller::room_user_status::RoomUserStatusHandler),
+    RoomUsers(controller::room_users::RoomUsersHandler)
 }
 
 impl Controller {
@@ -40,7 +45,9 @@ impl Controller {
         match self {
             Controller::Ping(handler) => handler.handle(session, reader).await,
             Controller::RoomModel(handler) => handler.handle(session, reader).await,
-            Controller::RoomLoad(handler) => handler.handle(session, reader).await
+            Controller::RoomLoad(handler) => handler.handle(session, reader).await,
+            Controller::RoomUserStatus(handler) => handler.handle(session, reader).await,
+            Controller::RoomUsers(handler) => handler.handle(session, reader).await
         }
     }
 }

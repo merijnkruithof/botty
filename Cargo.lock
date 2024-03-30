@@ -902,6 +902,8 @@ dependencies = [
  "futures-util",
  "http 1.0.0",
  "hyper",
+ "log",
+ "rand",
  "serde 1.0.197",
  "tokio",
  "tokio-tungstenite",

@@ -16,30 +16,21 @@ impl controller::handler::Handler for RoomLoadedHandler {
     }
 
     async fn handle(&self, session: Arc<Session>, mut reader: Reader) -> anyhow::Result<()> {
-        // Parse logic from Nitro.
-        // public parse(wrapper: IMessageDataWrapper): boolean
-        // {
-        //     if(!wrapper) return false;
-        //
-        //     this._roomEnter = wrapper.readBoolean();
-        //     this._data = new RoomDataParser(wrapper);
-        //     this._roomForward = wrapper.readBoolean();
-        //     this._staffPick = wrapper.readBoolean();
-        //     this._isGroupMember = wrapper.readBoolean();
-        //     this.data.allInRoomMuted = wrapper.readBoolean();
-        //     this._moderation = new RoomModerationSettings(wrapper);
-        //     this.data.canMute = wrapper.readBoolean();
-        //     this._chat = new RoomChatSettings(wrapper);
-        //
-        //     return true;
-        // }
-
         let _ = reader.read_bool();
         match reader.read_uint32() {
             Some(room_id) => {
+                // do not set the room if the user is already there. hacky solution, as there's
+                // something wrong with room entering, and currently I can't be arsed.
+                if let Some(current_room) = session.room.read().await.as_ref() {
+                    if current_room.room_id == room_id.clone() {
+                        debug!("Not changing room id, bot is already in the room");
+                        return Ok(());
+                    }
+                }
+
                 debug!("Changing room id of session {:} to {:}", &session.ticket, &room_id);
 
-                session.set_room(room::Room { room_id }).await;
+                session.set_room(room::Room::new(room_id)).await;
             },
 
             None => {

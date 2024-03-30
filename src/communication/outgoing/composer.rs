@@ -155,3 +155,27 @@ impl Composable for WalkInRoom {
         Message::binary(buf.to_vec())
     }
 }
+
+pub struct ReportComposer {
+    pub message: String,
+    pub topic: u32,
+    pub user_id: i32,
+    pub room_id: u32
+}
+
+impl Composable for ReportComposer {
+    fn compose(&self) -> Message {
+        let mut buf = BytesMut::new();
+
+        let mut packet_writer = Writer::new(&mut buf);
+
+        packet_writer.write_uint16(1691);
+        packet_writer.write_string(self.message.as_str());
+        packet_writer.write_uint32(self.topic);
+        packet_writer.write_int32(self.user_id);
+        packet_writer.write_uint32(self.room_id);
+        packet_writer.write_uint32(0); // message_count
+
+        Message::binary(buf.to_vec())
+    }
+}

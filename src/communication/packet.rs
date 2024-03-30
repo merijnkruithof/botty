@@ -1,4 +1,5 @@
 use bytes::{BufMut, BytesMut};
+use tracing::{error, info};
 
 pub struct Reader {
     buffer: Vec<u8>,
@@ -45,9 +46,28 @@ impl Reader {
         }
     }
 
+    pub fn read_string(&mut self) -> Option<String> {
+        let str_len = self.read_uint16()? as usize;
+        if self.position + str_len <= self.buffer.len() {
+            let buf: Vec<u8> = self.buffer[self.position..self.position + str_len].to_vec();
+            self.position += str_len;
+
+            return match String::from_utf8(buf) {
+                Ok(str) => Some(str),
+                Err(err) => {
+                    error!("Unable to read string from reader: {:?}", err);
+
+                    None
+                }
+            }
+        } else {
+            None
+        }
+    }
+
     pub fn read_bool(&mut self) -> Option<bool> {
         if self.position + 1 <= self.buffer.len() {
-            let result = self.buffer[self.position + 1];
+            let result = self.buffer[self.position];
 
             self.position += 1;
 
@@ -78,6 +98,12 @@ impl<'a> Writer<'a> {
 
     pub fn write_uint32(&mut self, data: u32) {
         self.buffer.put_u32(data);
+
+        self.adjust_buffer_len();
+    }
+
+    pub fn write_int32(&mut self, data: i32) {
+        self.buffer.put_i32(data);
 
         self.adjust_buffer_len();
     }

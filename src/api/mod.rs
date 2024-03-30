@@ -6,3 +6,5 @@ pub mod middleware;
 pub mod app_state;
 pub mod hotel;
 pub mod actions;
+pub(crate) mod service;
+pub(crate) mod task;

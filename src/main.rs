@@ -38,6 +38,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing::subscriber::set_global_default(subscriber).unwrap();
 
     let retro_manager = Arc::new(retro::Manager::new());
+    let task_manager = Arc::new(api::service::task::Manager::new());
 
     let app_config = app_config::load().unwrap();
 
@@ -66,6 +67,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Health
         let router = router.route("/api/health", get(api::health::index));
 
+        // Task manager
+        let router = router.route("/api/tasks/delete", post(api::task::kill_task));
+
         // Bot actions
         let router = router
             .route("/api/bots/available", post(api::bot::available))
@@ -77,7 +81,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "/api/bots/broadcast/enter_room",
                 post(api::bot::broadcast_enter_room),
             )
-            .route("/api/bots/broadcast/walk", post(api::bot::broadcast_walk));
+            .route("/api/bots/broadcast/walk", post(api::bot::broadcast_walk))
+            .route("/api/bots/broadcast/cfh_abuse", post(api::bot::broadcast_cfh_abuse));
 
         // Connection actions
         let router = router
@@ -102,6 +107,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         return router
             .layer(axum::Extension(retro_manager))
+            .layer(axum::Extension(task_manager))
             .layer(CorsLayer::permissive())
             .route_layer(axum::middleware::from_fn_with_state(app_state.clone(), api::middleware::auth::handle));
     })?;
