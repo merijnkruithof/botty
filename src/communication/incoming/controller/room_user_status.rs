@@ -47,19 +47,13 @@ impl controller::handler::Handler for RoomUserStatusHandler {
             let mut user = user_arc.write().await;
 
             let is_currently_walking = actions.contains("mv");
-            let user_wasnt_walking_before = !user.is_walking;
-
-            // If the user wasn't walking before, but now is, we'll have to reset the
-            // times_walked_to_achieve_x_y counter, because the user is walking towards a new path.
-            if user_wasnt_walking_before && is_currently_walking {
-                // Dispatch "CurrentlyMoving" event
-            } else {
+            if !is_currently_walking {
                 user.dispatch(UserEvent::UserMoved {
                     x: user.x.clone(),
                     y: user.y.clone()
                 });
             }
-
+            
             user.x = x;
             user.y = y;
             user.is_walking = is_currently_walking;
