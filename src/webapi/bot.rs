@@ -1,22 +1,22 @@
 use std::sync::Arc;
-use std::time::Duration;
+
 
 use anyhow::Result;
 use axum::{Extension, Json};
 use axum::response::IntoResponse;
-use dashmap::DashMap;
+
 use http::StatusCode;
-use rand::{random, Rng, SeedableRng, thread_rng};
-use rand::rngs::StdRng;
+
+
 use serde::{Deserialize, Serialize};
-use tokio::sync::mpsc::Sender;
-use tokio::time::{Instant, sleep, timeout};
-use tracing::{debug, error, info};
+
+
+use tracing::{error};
 
 use crate::communication::outgoing::composer;
 use crate::communication::outgoing::composer::Composable;
 use crate::core::taskmgr::task;
-use crate::core::taskmgr::task::KillableTask;
+
 use crate::retro;
 use crate::webapi::actions::room;
 
@@ -112,7 +112,7 @@ struct Followed {
     target_y: u32,
 }
 
-pub async fn broadcast_walk(task_manager: Extension<Arc<task::Manager>>, connection_service: Extension<Arc<retro::Manager>>, Json(payload): Json<BroadcastWalk>) -> StatusCode {
+pub async fn broadcast_walk(_task_manager: Extension<Arc<task::Manager>>, _connection_service: Extension<Arc<retro::Manager>>, Json(_payload): Json<BroadcastWalk>) -> StatusCode {
     return StatusCode::OK;
     // if task_manager.has_task("broadcast_walk".to_string()) {
     //     return StatusCode::IM_USED;

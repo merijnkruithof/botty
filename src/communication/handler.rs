@@ -1,17 +1,17 @@
 use std::future::Future;
 use std::sync::Arc;
 
-use dashmap::DashSet;
-use defer::defer;
+
+
 use futures_util::SinkExt;
-use tokio::net::TcpStream;
-use tokio::sync::broadcast::error::RecvError;
+
+
 use tokio::sync::watch;
 use tokio::sync::watch::Receiver;
 use tokio::task::JoinHandle;
-use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
+
 use tracing::{debug, error, info};
-use tracing::field::debug;
+
 
 use crate::client::state;
 use crate::communication::outgoing::composer;
@@ -62,7 +62,7 @@ impl Handler {
     }
 
     fn listen_to_packets(&self, kill_tx: watch::Sender<bool>) -> JoinHandle<()> {
-        let sso = self.bot_state.session.ticket.clone();
+        let _sso = self.bot_state.session.ticket.clone();
 
         // hack to get mutable subscriber
         let mut receiver = self.bot_state.receiver.resubscribe();

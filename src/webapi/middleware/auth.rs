@@ -1,9 +1,9 @@
 use anyhow::{anyhow, Result};
 use axum::{extract::Request, http, middleware::Next, response::Response};
 use axum::extract::State;
-use http::{HeaderMap, Method, StatusCode};
-use http::header::ORIGIN;
-use tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode::Status;
+use http::{HeaderMap, StatusCode};
+
+
 use tracing::error;
 
 use crate::webapi::app_state::AppState;

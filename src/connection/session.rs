@@ -1,18 +1,18 @@
-use std::fmt;
-use std::hash::RandomState;
+
+
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, AtomicI32};
+
 
 use anyhow::anyhow;
 use dashmap::DashMap;
-use dashmap::iter::Iter;
-use tokio::sync::{mpsc, mpsc::Receiver, mpsc::Sender, watch};
-use tokio::sync::RwLock;
+
+use tokio::sync::{mpsc::Sender};
+
 use tokio_tungstenite::tungstenite::Message;
 use tracing::error;
 
-use crate::client;
-use crate::client::UserInfo;
+
+
 
 pub struct Session {
     // ticket contains the authentication ticket of a session. This is currently its unique

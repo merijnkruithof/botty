@@ -1,6 +1,6 @@
 use anyhow::anyhow;
 use tokio::sync::broadcast;
-use crate::event::controller::authentication_ok;
+
 use crate::event::controller::authentication_ok::AuthenticationOkHandler;
 
 use crate::event::controller::handler::Controller;
@@ -18,7 +18,7 @@ impl Factory {
     }
 
     pub fn make_controller(&self, header: u16, tx: broadcast::Sender<ControllerEvent>) -> anyhow::Result<Controller> {
-        return match(header) {
+        return match header {
             Messages::PING => Ok(Controller::Ping(PingHandler{ tx })),
 
             Messages::AUTHENTICATION_OK => Ok(AuthenticationOk(AuthenticationOkHandler { tx })),

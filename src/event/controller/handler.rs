@@ -17,7 +17,7 @@ pub enum Controller {
 
 impl Controller {
     pub fn handle(&self, reader: Reader) -> Result<()> {
-        let event = match self {
+        let _event = match self {
             Controller::Ping(handler) => handler.handle(),
             Controller::AuthenticationOk(handler) => handler.handle(),
             Controller::UserData(handler) => handler.handle(reader),

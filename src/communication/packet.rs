@@ -1,5 +1,5 @@
 use bytes::{BufMut, BytesMut};
-use tracing::{error, info};
+use tracing::{error};
 
 pub struct Reader {
     buffer: Vec<u8>,

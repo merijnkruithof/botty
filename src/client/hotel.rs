@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use anyhow::{anyhow, Result};
 use dashmap::DashMap;
-use defer::defer;
+
 use futures_util::{SinkExt, StreamExt};
 use tokio::sync::{mpsc, watch};
 use tracing::info;
@@ -40,7 +40,7 @@ impl Manager {
         // Establish a new websocket connection
         let connection = self.connector.connect().await?;
 
-        let (mut writer, mut reader) = connection.split();
+        let (writer, reader) = connection.split();
         let (cancellation_tx, cancellation_rx) = watch::channel(false);
 
         // Connection is established! We can now listen for incoming packets.

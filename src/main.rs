@@ -1,14 +1,14 @@
 use std::sync::Arc;
 
-use axum::extract::State;
+
 use axum::routing::{get, post};
 use tower_http::cors::CorsLayer;
-use tracing::{debug, error, info, Level};
+use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
 
 use crate::client::hotel;
 use crate::core::taskmgr::task;
-use crate::retro::Manager;
+
 use crate::webapi::actions::web::WebService;
 
 mod webapi;

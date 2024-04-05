@@ -1,4 +1,4 @@
-use std::sync::Arc;
+
 
 use futures_util::SinkExt;
 use futures_util::stream::SplitSink;
@@ -8,7 +8,7 @@ use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 use tokio_tungstenite::tungstenite::Message;
 use tracing::{error, info};
 
-use crate::connection::session::Session;
+
 
 pub struct Sender { }
 

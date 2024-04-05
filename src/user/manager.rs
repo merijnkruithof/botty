@@ -1,10 +1,10 @@
 use std::sync::Arc;
 use tokio::sync::{broadcast, watch};
-use tokio::task::JoinHandle;
+
 use crate::event::ControllerEvent;
-use anyhow::{anyhow, Result};
+use anyhow::{Result};
 use dashmap::DashMap;
-use tracing::{debug, error, info};
+use tracing::{debug, info};
 use crate::connection::session::Session;
 use crate::user::user::User;
 
