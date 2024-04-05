@@ -9,13 +9,21 @@ use crate::connection::session::Session;
 use crate::user::user::User;
 
 pub struct Manager {
-    users: Arc<DashMap<String, User>>
+    users: Arc<DashMap<String, Arc<User>>>
 }
 
 impl Manager {
     pub fn new() -> Self {
         Manager {
             users: Arc::new(DashMap::new())
+        }
+    }
+
+    pub fn get_user(&self, auth_ticket: String) -> Option<Arc<User>> {
+        if let Some(entry) = self.users.get(&auth_ticket) {
+            Some(entry.value().clone())
+        } else {
+            None
         }
     }
 
@@ -48,21 +56,21 @@ impl Manager {
     }
 
     fn handle_controller_event(&self, session: Arc<Session>, event: ControllerEvent) {
-        let users_map =  self.users.clone();
+        let users_map = self.users.clone();
 
         tokio::spawn(async move {
             match event {
                 ControllerEvent::UserInfo { data } => {
                     debug!("Received user data {:?}", &data);
 
-                    users_map.insert(session.ticket.clone(), User{
+                    users_map.insert(session.ticket.clone(), Arc::new(User{
                         user_id: data.user_id,
                         username: data.username,
                         motto: data.motto,
                         figure: data.figure,
                         gender: data.gender,
                         sso_ticket: session.ticket.clone()
-                    });
+                    }));
 
                     info!("Updated user data for session {}", &session.ticket);
                 },
