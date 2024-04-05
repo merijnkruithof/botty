@@ -1,7 +1,7 @@
 use tokio::sync::broadcast;
 use crate::communication::packet::Reader;
 use crate::event::ControllerEvent;
-use crate::event::parser::user_data_parser;
+use crate::event::parser::user::user_data_parser;
 
 use anyhow::Result;
 

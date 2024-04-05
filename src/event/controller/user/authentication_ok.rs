@@ -6,7 +6,7 @@ pub struct AuthenticationOkHandler {
 }
 
 impl AuthenticationOkHandler {
-    pub fn handle(&self,) -> anyhow::Result<()> {
+    pub fn handle(&self) -> anyhow::Result<()> {
         self.tx.send(ControllerEvent::AuthenticationOk).unwrap();
 
         Ok(())

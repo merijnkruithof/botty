@@ -1,18 +1,20 @@
 use anyhow::Result;
 
 use crate::communication::packet::Reader;
-use crate::event::controller::authentication_ok::AuthenticationOkHandler;
 use crate::event::controller::ping::PingHandler;
+use crate::event::controller::room::{RoomLoadedHandler, RoomModelHandler, RoomOpenHandler, RoomUsersHandler, RoomUserStatusHandler};
+use crate::event::controller::user::AuthenticationOkHandler;
 use crate::event::controller::user_info::UserInfoHandler;
 
 pub enum Controller {
     Ping(PingHandler),
     AuthenticationOk(AuthenticationOkHandler),
-    UserData(UserInfoHandler)
-    // RoomModel(controller::room_model::RoomModelHandler),
-    // RoomLoad(controller::room_load::RoomLoadedHandler),
-    // RoomUserStatus(controller::room_user_status::RoomUserStatusHandler),
-    // RoomUsers(controller::room_users::RoomUsersHandler)
+    UserData(UserInfoHandler),
+    RoomModel(RoomModelHandler),
+    RoomOpen(RoomOpenHandler),
+    RoomLoad(RoomLoadedHandler),
+    RoomUserStatus(RoomUserStatusHandler),
+    RoomUsers(RoomUsersHandler)
 }
 
 impl Controller {
@@ -21,13 +23,12 @@ impl Controller {
             Controller::Ping(handler) => handler.handle(),
             Controller::AuthenticationOk(handler) => handler.handle(),
             Controller::UserData(handler) => handler.handle(reader),
-            // Controller::RoomModel(handler) => handler.handle(session, reader).await,
-            // Controller::RoomLoad(handler) => handler.handle(session, reader).await,
-            // Controller::RoomUserStatus(handler) => handler.handle(session, reader).await,
-            // Controller::RoomUsers(handler) => handler.handle(session, reader).await
+            Controller::RoomModel(handler) => handler.handle(reader),
+            Controller::RoomLoad(handler) => handler.handle(reader),
+            Controller::RoomUserStatus(handler) => handler.handle(reader),
+            Controller::RoomUsers(handler) => handler.handle(reader),
+            Controller::RoomOpen(handler) => handler.handle(),
         };
-
-        // Dispatch the event to the whole application
 
         Ok(())
     }

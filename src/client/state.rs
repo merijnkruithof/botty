@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::sync::atomic::AtomicU32;
 
 use tokio::sync::{broadcast, mpsc};
 use tokio_tungstenite::tungstenite::Message;
@@ -29,6 +30,8 @@ impl GlobalState {
 }
 
 pub struct BotState {
+    pub current_room: AtomicU32,
+
     // Contains the current network session.
     pub session: Arc<Session>,
 
@@ -51,6 +54,7 @@ impl BotState {
         let event_handler = Arc::new(event::Handler::new(rate_limit));
 
         BotState{
+            current_room: AtomicU32::new(0),
             session,
             receiver,
             packet_tx,

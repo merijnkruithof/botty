@@ -42,6 +42,7 @@ impl Handler {
         
         // Create listener of user manager
         let user_listener = self.create_user_listener(kill_rx.clone());
+        let room_listener = self.create_room_listener(kill_rx.clone());
         let packet_listener = self.listen_to_packets(kill_tx);
         let ping_handle = self.handle_ping_pong(kill_rx.clone());
         let authentication_handle = self.handle_authentication_ok(kill_rx.clone());
@@ -53,7 +54,7 @@ impl Handler {
         let _ = self.bot_state.packet_tx.send(composer::AuthTicket{ sso_ticket: &*self.bot_state.session.ticket }.compose()).await;
         debug!("[C->S] Sent AuthTicket for sso {}", &self.bot_state.session.ticket);
 
-        match tokio::try_join!(ping_handle, packet_listener, authentication_handle, user_listener) {
+        match tokio::try_join!(ping_handle, packet_listener, authentication_handle, user_listener, room_listener) {
             Ok(_) => info!("Tasks completed successfully"),
             Err(err) => error!("Unable to continue tasks: {:?}", err)
         };
@@ -111,7 +112,6 @@ impl Handler {
                         let tx = packet_tx.clone();
                         tokio::spawn(async move {
                             if let Ok(ControllerEvent::Ping) = data {
-                                debug!("[C->S] Sending pong composer");
                                 let _ = tx.send(composer::Pong{}.compose()).await;
                             }
                         });
@@ -162,6 +162,15 @@ impl Handler {
 
         tokio::spawn(async move {
             let _ = user_manager.listen(session, event_rx, kill_rx).await;
+        })
+    }
+    fn create_room_listener(&self, kill_rx: Receiver<bool>) -> JoinHandle<()> {
+        let room_manager = self.global_state.room_manager.clone();
+        let event_tx = self.bot_state.event_handler.tx.subscribe();
+        let bot_state = self.bot_state.clone();
+
+        tokio::spawn(async move {
+            let _ = room_manager.listen(bot_state, event_tx, kill_rx).await;
         })
     }
 }

@@ -2,14 +2,23 @@ use anyhow::{anyhow, Result};
 use tokio::sync::broadcast;
 
 use crate::communication::packet::Reader;
+use crate::event::controller::room::{RoomLoadedEvent, RoomModelEvent, RoomUsersEvent, RoomUserStatusEvent};
 use crate::event::controller::user_info::UserInfoEvent;
 use crate::event::controller_factory::Factory;
 
 #[derive(Debug, Clone)]
 pub enum ControllerEvent {
+    // User
     Ping,
     AuthenticationOk,
-    UserInfo { data: UserInfoEvent }
+    UserInfo { data: UserInfoEvent },
+
+    // Rooms
+    RoomLoaded { data: RoomLoadedEvent },
+    RoomModel { data: RoomModelEvent },
+    RoomUserStatus { data: RoomUserStatusEvent },
+    RoomUsers { data: RoomUsersEvent },
+    RoomOpen
 }
 
 pub struct Handler {
