@@ -1,4 +1,4 @@
-pub use user_info::UserInfo;
+
 
 pub mod hotel;
 
