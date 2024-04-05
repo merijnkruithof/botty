@@ -1,8 +1,9 @@
 use std::sync::Arc;
+
 use anyhow::anyhow;
 use dashmap::DashMap;
+
 use crate::client;
-use crate::client::session;
 
 // Manager takes full responsibility of listing, adding, and removing retro's from Pegasus. It
 // stores a hotel name, e.g. "Localhost", and couples it to an underlying client hotel manager.

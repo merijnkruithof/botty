@@ -1,4 +1,7 @@
-pub mod session;
+pub use user_info::UserInfo;
+
 pub mod hotel;
 
-pub mod room;
+mod user_info;
+pub mod state;
+

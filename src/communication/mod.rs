@@ -1,4 +1,6 @@
-pub mod incoming;
+pub use handler::Handler;
+
 pub mod outgoing;
-pub mod connection;
 pub mod packet;
+mod handler;
+

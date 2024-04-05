@@ -1,5 +1,6 @@
 use bytes::BytesMut;
 use tokio_tungstenite::tungstenite::Message;
+
 use crate::communication::packet::Writer;
 
 pub trait Composable {
@@ -31,6 +32,19 @@ impl<'a> Composable for AuthTicket<'a> {
         packet_writer.write_uint16(2419);
         packet_writer.write_string(self.sso_ticket);
         packet_writer.write_uint32(0); // TODO: last ticker time
+
+        Message::binary(buf.to_vec())
+    }
+}
+
+pub struct RequestUserData { }
+
+impl Composable for RequestUserData {
+    fn compose(&self) -> Message {
+        let mut buf = BytesMut::new();
+        let mut packet_writer = Writer::new(&mut buf);
+
+        packet_writer.write_uint16(357);
 
         Message::binary(buf.to_vec())
     }

@@ -8,6 +8,7 @@ Pegasus is a load tester.
 - [X] Add hotels
 - [ ] Remove hotels
 - [ ] Proxy support
+- [X] Task Manager
 
 #### User actions
 - [X] Authentication
@@ -24,5 +25,5 @@ Pegasus is a load tester.
 - [X] Enter rooms
 - [X] CFH Abuse
 - [X] Walking
-- [ ] Following players
-- [ ] Room building (e.g. Wired stacks). Unlikely to be built.
+- [X] Following players
+- [ ] Walk randomly in a room
