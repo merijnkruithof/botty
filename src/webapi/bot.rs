@@ -18,11 +18,23 @@ use crate::communication::outgoing::composer::Composable;
 use crate::core::taskmgr::task;
 
 use crate::retro;
+use crate::user::User;
 use crate::webapi::actions::room;
+
+#[derive(Serialize)]
+pub struct BotInfo {
+    pub user_id: u32,
+    pub username: String,
+    pub motto: String,
+    pub figure: String,
+    pub gender: String,
+    pub sso_ticket: String
+}
 
 #[derive(Serialize)]
 pub struct AvailableBots {
     n: usize,
+    bots: Option<Vec<BotInfo>>
 }
 
 #[derive(Deserialize)]
@@ -36,7 +48,28 @@ pub async fn available(
 ) -> Result<impl IntoResponse, impl IntoResponse> {
     match connection_service.get_hotel_connection_handler(payload.hotel) {
         Ok(handler) => {
-            Ok((StatusCode::OK, Json(AvailableBots { n: handler.get_session_service().online_bots() })))
+            let mut response = AvailableBots{
+                n: handler.get_session_service().online_bots(),
+                bots: None,
+            };
+
+            let user_manager = handler.global_state().user_manager.clone();
+            let bots: Vec<BotInfo> = user_manager.users().iter().map(|entry| {
+                BotInfo{
+                    user_id: entry.user_id.clone(),
+                    username: entry.username.clone(),
+                    motto: entry.motto.clone(),
+                    figure: entry.figure.clone(),
+                    gender: entry.gender.clone(),
+                    sso_ticket: entry.sso_ticket.clone()
+                }
+            }).collect();
+
+            if bots.len() > 0 {
+                response.bots = Some(bots);
+            }
+
+            Ok((StatusCode::OK, Json(response)))
         },
 
         Err(_err) => {

@@ -19,6 +19,13 @@ impl Manager {
         }
     }
 
+    pub fn users(&self) -> Vec<Arc<User>> {
+        self.users
+            .iter()
+            .map(|entry| entry.value().clone())
+            .collect()
+    }
+
     pub fn get_user(&self, auth_ticket: String) -> Option<Arc<User>> {
         if let Some(entry) = self.users.get(&auth_ticket) {
             Some(entry.value().clone())

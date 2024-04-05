@@ -31,6 +31,17 @@ impl Manager {
         self.global_state.session_service.clone()
     }
 
+    pub fn global_state(&self) -> Arc<state::GlobalState> {
+        self.global_state.clone()
+    }
+
+    pub fn bot_states(&self) -> Vec<Arc<BotState>> {
+        return self.client_states
+            .iter()
+            .map(|entry| entry.value().clone())
+            .collect();
+    }
+
     pub async fn new_client(&self, auth_ticket: String) -> Result<()>  {
         let session_service = self.global_state.session_service.clone();
         if session_service.has(&auth_ticket) {
