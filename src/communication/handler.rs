@@ -168,9 +168,10 @@ impl Handler {
         let room_manager = self.global_state.room_manager.clone();
         let event_tx = self.bot_state.event_handler.tx.subscribe();
         let bot_state = self.bot_state.clone();
+        let global_state = self.global_state.clone();
 
         tokio::spawn(async move {
-            let _ = room_manager.listen(bot_state, event_tx, kill_rx).await;
+            let _ = room_manager.listen(global_state, bot_state, event_tx, kill_rx).await;
         })
     }
 }
