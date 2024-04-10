@@ -4,6 +4,7 @@ pub mod api_session;
 
 pub mod middleware;
 pub mod app_state;
-pub mod hotel;
 pub mod actions;
 pub(crate) mod task;
+
+pub mod controller;

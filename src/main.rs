@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 
-use axum::routing::{get, post};
+use axum::routing::{delete, get, post};
 use tower_http::cors::CorsLayer;
 use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
@@ -10,6 +10,9 @@ use crate::client::hotel;
 use crate::core::taskmgr::task;
 
 use crate::webapi::actions::web::WebService;
+use crate::webapi::controller;
+use crate::webapi::controller::bot::{bot_controller, message_controller};
+use crate::webapi::controller::hotel_controller;
 
 mod webapi;
 mod app_config;
@@ -78,26 +81,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let router = router.route("/api/health", get(webapi::health::index));
 
         // Task manager
-        let router = router.route("/api/tasks/delete", post(webapi::task::kill_task));
+        let router = router.route("/api/tasks/delete", delete(webapi::task::kill_task));
 
         // Bot actions
         let router = router
-            .route("/api/bots/available", post(webapi::bot::available))
-            .route(
-                "/api/bots/broadcast/message",
-                post(webapi::bot::broadcast_message),
-            )
-            .route(
-                "/api/bots/broadcast/enter_room",
-                post(webapi::bot::broadcast_enter_room),
-            )
-            .route("/api/bots/broadcast/walk", post(webapi::bot::broadcast_walk))
+            .route("/api/bots", post(bot_controller::index))
+            .route("/api/bots/:ticket", post(bot_controller::show))
+            .route("/api/bots/broadcast/message", post(message_controller::broadcast_message))
+            .route("/api/bots/broadcast/enter_room", post(webapi::bot::broadcast_enter_room))
+            // .route("/api/bots/broadcast/walk", post(webapi::bot::broadcast_walk))
             .route("/api/bots/broadcast/cfh_abuse", post(webapi::bot::broadcast_cfh_abuse));
 
         // Connection actions
         let router = router
-            .route("/api/hotels", post(webapi::hotel::list));
-            // .route("/webapi/add_hotel", post(webapi::hotel::add_hotel));
+            .route("/api/hotels", post(hotel_controller::list));
 
         // Session actions
         let router = router
