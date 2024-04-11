@@ -4,9 +4,12 @@ use axum::extract::Path;
 use http::StatusCode;
 use serde::{Deserialize, Serialize};
 use crate::retro;
-// use anyhow::Result;
-use axum::response::{IntoResponse, Response};
 use axum;
+use tokio_tungstenite::tungstenite::connect;
+use tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode::Status;
+use crate::communication::outgoing::composer;
+use crate::communication::outgoing::composer::Composable;
+use crate::connection::session::Session;
 
 #[derive(Serialize)]
 pub struct AvailableBots {
@@ -94,5 +97,49 @@ pub async fn show(
         },
 
         Err(_) => Err(StatusCode::NOT_FOUND)
+    }
+}
+
+#[derive(Deserialize)]
+pub struct UpdateBot {
+    hotel: String,
+    motto: Option<String>,
+    appearance: Option<UpdateAppearance>
+}
+
+#[derive(Deserialize)]
+pub struct UpdateAppearance {
+    gender: String,
+    figure: String
+}
+
+#[debug_handler]
+pub async fn update(
+    ticket: Path<String>,
+    connection_service: Extension<Arc<retro::Manager>>,
+    Json(payload): Json<UpdateBot>
+) -> Result<(), StatusCode> {
+    match connection_service.get_hotel_connection_handler(payload.hotel) {
+        Ok(handler) => {
+            let session_service = handler.get_session_service();
+
+            if let Some(session) = session_service.get(&ticket) {
+                if let Some(motto) = payload.motto {
+                    let _ = session_service.send(&session, composer::UpdateMotto { motto}.compose()).await;
+                }
+
+                if let Some(appearance) = payload.appearance {
+                    let _ = session_service.send(&session, composer::UpdateLook { figure: appearance.figure, gender: appearance.gender }.compose()).await;
+                }
+
+                Ok(())
+            } else {
+                Err(StatusCode::NOT_FOUND)
+            }
+        },
+
+        Err(_) => {
+            Err(StatusCode::NOT_FOUND)
+        }
     }
 }

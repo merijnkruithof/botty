@@ -48,6 +48,14 @@ impl Service {
         self.items.contains_key(ticket)
     }
 
+    pub fn get(&self, ticket: &String) -> Option<Arc<Session>> {
+        if let Some(session)  = self.items.get(ticket) {
+            Some(session.clone())
+        } else {
+            None
+        }
+    }
+
     pub fn delete(&self, ticket: &String) {
         self.items.remove(ticket);
     }

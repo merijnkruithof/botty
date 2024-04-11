@@ -193,3 +193,37 @@ impl Composable for ReportComposer {
         Message::binary(buf.to_vec())
     }
 }
+
+pub struct UpdateMotto {
+    pub motto: String,
+}
+
+impl Composable for UpdateMotto {
+    fn compose(&self) -> Message {
+        let mut buf = BytesMut::new();
+        let mut writer = Writer::new(&mut buf);
+
+        writer.write_uint16(2228);
+        writer.write_string(self.motto.as_str());
+
+        Message::binary(buf.to_vec())
+    }
+}
+
+pub struct UpdateLook {
+    pub figure: String,
+    pub gender: String
+}
+
+impl Composable for UpdateLook {
+    fn compose(&self) -> Message {
+        let mut buf = BytesMut::new();
+        let mut writer = Writer::new(&mut buf);
+
+        writer.write_uint16(2730);
+        writer.write_string(self.gender.as_str());
+        writer.write_string(self.figure.as_str());
+        
+        Message::binary(buf.to_vec())
+    }
+}

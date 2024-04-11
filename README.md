@@ -9,12 +9,15 @@ Pegasus is a load tester.
 - [ ] Remove hotels
 - [ ] Proxy support
 - [X] Task Manager
+- [X] WebSockets
+- [ ] Raw TCP connection
 
 #### User actions
 - [X] Authentication
 - [X] Ping pong
 - [X] API call to add and remove auth tickets
-- [ ] Updating look
+- [ ] Update
+- [ ] Bulk update
 - [ ] Sending friend requests
 - [ ] Creating rooms
 - [ ] Give handitem

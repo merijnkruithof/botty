@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 
-use axum::routing::{delete, get, post};
+use axum::routing::{delete, get, post, put};
 use tower_http::cors::CorsLayer;
 use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
@@ -39,7 +39,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
    |  |      |  `---.|  '-'  |  |  | |  |\       /\  '-'(_ .'\       /
    `--'      `------' `-----'   `--' `--' `-----'  `-----'    `-----'  "#;
     println!("{}", ascii_art);
-    println!("Habbo Load Tester");
+    println!("Pegasus Server");
     println!("Developed by Merijn (Discord: merijnn)");
     println!("-------------------------------------------------------------------------------");
 
@@ -86,7 +86,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Bot actions
         let router = router
             .route("/api/bots", post(bot_controller::index))
+            // .route("/api/bots/bulk_update", put(bot_controller::bulk_update))
             .route("/api/bots/:ticket", post(bot_controller::show))
+            .route("/api/bots/:ticket", put(bot_controller::update))
             .route("/api/bots/broadcast/message", post(message_controller::broadcast_message))
             .route("/api/bots/broadcast/enter_room", post(webapi::bot::broadcast_enter_room))
             // .route("/api/bots/broadcast/walk", post(webapi::bot::broadcast_walk))
