@@ -1,9 +1,9 @@
 # Pegasus
-Pegasus gives you the ability to load balance your retro hotel.
+Pegasus gives you the ability to load test your or someone else's retro hotel
 
 Pegasus is a high-performance server with a low memory footprint. It should be able to spawn thousands of bots, even
-if your resources are limited. Pegasus can be run on a Virtual Private Server (VPS) or dedicated server. 
-It's not a standalone application, rather a server application that should be reached from an external address.
+if your resources are limited. Pegasus can be run on a Virtual Private Server (VPS) or a dedicated server. 
+It's not a standalone application, but rather a server application that should be reached from an external address.
 
 # Roadmap
 - [X] WebSockets
