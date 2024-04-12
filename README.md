@@ -21,7 +21,7 @@ It's not a standalone application, but rather a server application that should b
 - [X] Enter rooms
 - [X] CFH abuse
 - [ ] Ability to use a raw TCP connection
-- [ ] Bulk update
+- [X] Bulk update
 - [ ] Walking & following in a room
   - [ ] Ability to walk to a specific x and y coordinate
   - [ ] Ability to walk arbitrarily
