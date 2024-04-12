@@ -86,7 +86,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Bot actions
         let router = router
             .route("/api/bots", post(bot_controller::index))
-            // .route("/api/bots/bulk_update", put(bot_controller::bulk_update))
+            .route("/api/bots/bulk_update", put(bot_controller::bulk_update))
             .route("/api/bots/:ticket", post(bot_controller::show))
             .route("/api/bots/:ticket", put(bot_controller::update))
             .route("/api/bots/broadcast/message", post(message_controller::broadcast_message))
