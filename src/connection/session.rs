@@ -1,18 +1,9 @@
-
-
 use std::sync::Arc;
-
-
 use anyhow::anyhow;
 use dashmap::DashMap;
-
 use tokio::sync::{mpsc::Sender};
-
 use tokio_tungstenite::tungstenite::Message;
 use tracing::error;
-
-
-
 
 pub struct Session {
     // ticket contains the authentication ticket of a session. This is currently its unique

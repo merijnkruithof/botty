@@ -26,6 +26,25 @@ impl Manager {
         }
     }
 
+    pub fn get_bots_in_room(&self, room_id: u32) -> Option<Vec<String>> {
+        if let Some(room) = self.rooms.get(&room_id) {
+            // Get all room users
+            let room_users: Vec<u32> = room.users.iter().map(|entry| entry.user_id.clone()).collect();
+
+            // Get all bots that are in the room
+            let bots = self.bots
+                .iter()
+                .filter(|entry| room_users.contains(&entry.user_id))
+                .map(|entry| entry.key().clone())
+                .collect();
+
+            // Return all bots that are in the room
+            Some(bots)
+        } else {
+            None
+        }
+    }
+
     pub async fn listen(&self,
                         global_state: Arc<GlobalState>,
                         bot_state: Arc<BotState>,

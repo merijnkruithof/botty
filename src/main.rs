@@ -13,6 +13,7 @@ use crate::webapi::actions::web::WebService;
 use crate::webapi::controller;
 use crate::webapi::controller::bot::{bot_controller, message_controller};
 use crate::webapi::controller::hotel_controller;
+use crate::webapi::controller::room::{enter_room_controller, walk_controller};
 
 mod webapi;
 mod app_config;
@@ -89,10 +90,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .route("/api/bots/bulk_update", put(bot_controller::bulk_update))
             .route("/api/bots/:ticket", post(bot_controller::show))
             .route("/api/bots/:ticket", put(bot_controller::update))
+            .route("/api/rooms/enter", post(enter_room_controller::enter_room))
+            .route("/api/rooms/:room_id/walk_to_position", post(walk_controller::walk_to_position))
             .route("/api/bots/broadcast/message", post(message_controller::broadcast_message))
             .route("/api/bots/broadcast/enter_room", post(webapi::bot::broadcast_enter_room))
             // .route("/api/bots/broadcast/walk", post(webapi::bot::broadcast_walk))
             .route("/api/bots/broadcast/cfh_abuse", post(webapi::bot::broadcast_cfh_abuse));
+
+        // Room actions
 
         // Connection actions
         let router = router
