@@ -22,12 +22,9 @@ It's not a standalone application, but rather a server application that should b
 - [X] CFH abuse
 - [ ] Ability to use a raw TCP connection
 - [X] Bulk update
-- [ ] Walking & following in a room
-  - [ ] Ability to walk to a specific x and y coordinate
-  - [ ] Ability to walk arbitrarily
-  - [ ] Ability to follow a user
+- [X] Walking & following in a room
+  - [X] Ability to walk to a specific x and y coordinate
+  - [X] Ability to walk arbitrarily
 - [ ] Room actions (such as dancing, room effects, handitem, and perhaps more)
-- [ ] Friend management (add friends, send direct messages, etc)
 - [ ] Room management (creating rooms, nice to have: decorating a bit)
-- [ ] Proxy support
 - [ ] Retro Management (via API)

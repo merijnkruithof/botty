@@ -92,6 +92,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .route("/api/bots/:ticket", put(bot_controller::update))
             .route("/api/rooms/enter", post(enter_room_controller::enter_room))
             .route("/api/rooms/:room_id/walk_to_position", post(walk_controller::walk_to_position))
+            .route("/api/rooms/:room_id/walk_to_random_position", post(walk_controller::walk_randomly))
             .route("/api/bots/broadcast/message", post(message_controller::broadcast_message))
             .route("/api/bots/broadcast/enter_room", post(webapi::bot::broadcast_enter_room))
             // .route("/api/bots/broadcast/walk", post(webapi::bot::broadcast_walk))

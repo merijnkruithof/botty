@@ -2,6 +2,7 @@ use std::sync::Arc;
 use axum::{Extension, Json};
 use axum::extract::Path;
 use http::StatusCode;
+use rand::Rng;
 use serde::{Deserialize};
 use crate::communication::outgoing::composer;
 use crate::communication::outgoing::composer::Composable;
@@ -30,7 +31,7 @@ pub async fn walk_to_position(
     match manager.get_hotel_connection_handler(payload.hotel) {
         Ok(handler) => {
             // Get all bots that must walk in the room
-            let bots_that_must_enter_room = payload.bots.unwrap_or_else(|| vec![]);
+            let bots_that_must_walk = payload.bots.unwrap_or_else(|| vec![]);
 
             // Get the room manager
             let room_manager = handler.global_state().room_manager.clone();
@@ -41,7 +42,7 @@ pub async fn walk_to_position(
                 if !all_bots_must_walk {
                     room_users = room_users
                         .iter()
-                        .filter(|entry| bots_that_must_enter_room.contains(&entry.clone()))
+                        .filter(|entry| bots_that_must_walk.contains(&entry.clone()))
                         .cloned()
                         .collect::<Vec<String>>();
                 }
@@ -71,5 +72,56 @@ pub async fn walk_to_position(
         Err(_) => {
             Err(ErrorResponse::new("Hotel not found", StatusCode::NOT_FOUND))
         }
+    }
+}
+
+#[derive(Deserialize)]
+pub struct WalkRandomlyRequest {
+    hotel: String,
+    all_bots_must_walk: Option<bool>,
+    bots: Option<Vec<String>>
+}
+
+pub async fn walk_randomly(
+    Path(room_id): Path<u32>,
+    manager: Extension<Arc<retro::Manager>>,
+    Json(payload): Json<WalkRandomlyRequest>
+) -> Result<(), ErrorResponse> {
+    if let Ok(handler) = manager.get_hotel_connection_handler(payload.hotel) {
+        let bots_that_must_walk = payload.bots.unwrap_or_else(|| vec![]);
+
+        // Get the room manager
+        let room_manager = handler.global_state().room_manager.clone();
+
+        // Get all room users
+        if let Some(mut room_users) = room_manager.get_bots_in_room(room_id) {
+            let all_bots_must_walk = payload.all_bots_must_walk.unwrap_or_default();
+            if !all_bots_must_walk {
+                room_users = room_users
+                    .iter()
+                    .filter(|entry| bots_that_must_walk.contains(&entry.clone()))
+                    .cloned()
+                    .collect::<Vec<String>>();
+            }
+
+            let session_service = handler.get_session_service();
+
+            let mut rng = rand::thread_rng();
+            let x = rng.gen_range(1..32);
+            let y = rng.gen_range(1..32);
+            tokio::spawn(async move {
+                for room_user in room_users {
+                    if let Some(session) = session_service.get(&room_user) {
+                        let msg = composer::WalkInRoom { x, y }.compose();
+
+                        let _ = session_service.send(&session, msg).await;
+                    }
+                }
+            });
+        }
+
+        Ok(())
+    } else {
+        Err(ErrorResponse::new("Hotel not found", StatusCode::NOT_FOUND))
     }
 }
