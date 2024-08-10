@@ -13,7 +13,7 @@ use crate::webapi::actions::web::WebService;
 use crate::webapi::controller;
 use crate::webapi::controller::bot::{bot_controller, message_controller};
 use crate::webapi::controller::hotel_controller;
-use crate::webapi::controller::room::{enter_room_controller, walk_controller};
+use crate::webapi::controller::room::{enter_room_controller, room_action_controller, walk_controller};
 
 mod webapi;
 mod app_config;
@@ -78,13 +78,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Configure routes
     web_service.configure_routes(|router| {
-        // Health
         let router = router.route("/api/health", get(webapi::health::index));
-
-        // Task manager
         let router = router.route("/api/tasks/delete", delete(webapi::task::kill_task));
 
-        // Bot actions
         let router = router
             .route("/api/bots", post(bot_controller::index))
             .route("/api/bots/bulk_update", put(bot_controller::bulk_update))
@@ -93,13 +89,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .route("/api/rooms/enter", post(enter_room_controller::enter_room))
             .route("/api/rooms/:room_id/walk_to_position", post(walk_controller::walk_to_position))
             .route("/api/rooms/:room_id/walk_to_random_position", post(walk_controller::walk_randomly))
+            .route("/api/rooms/:room_id/action", post(room_action_controller::act))
             .route("/api/bots/broadcast/message", post(message_controller::broadcast_message))
             .route("/api/bots/broadcast/enter_room", post(webapi::bot::broadcast_enter_room))
             .route("/api/bots/broadcast/cfh_abuse", post(webapi::bot::broadcast_cfh_abuse));
 
-        // Room actions
-
-        // Connection actions
         let router = router
             .route("/api/hotels", post(hotel_controller::list));
 
