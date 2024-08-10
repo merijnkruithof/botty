@@ -95,7 +95,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .route("/api/rooms/:room_id/walk_to_random_position", post(walk_controller::walk_randomly))
             .route("/api/bots/broadcast/message", post(message_controller::broadcast_message))
             .route("/api/bots/broadcast/enter_room", post(webapi::bot::broadcast_enter_room))
-            // .route("/api/bots/broadcast/walk", post(webapi::bot::broadcast_walk))
             .route("/api/bots/broadcast/cfh_abuse", post(webapi::bot::broadcast_cfh_abuse));
 
         // Room actions

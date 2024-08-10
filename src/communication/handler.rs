@@ -127,6 +127,7 @@ impl Handler {
             }
         });
     }
+
     fn handle_authentication_ok(&self, mut kill_rx: watch::Receiver<bool>) -> JoinHandle<()> {
         let mut subscriber = self.bot_state.event_handler.tx.subscribe();
         let sso = self.bot_state.session.ticket.clone();
@@ -155,6 +156,7 @@ impl Handler {
             }
         });
     }
+
     fn create_user_listener(&self, kill_rx: Receiver<bool>) -> JoinHandle<()> {
         let user_manager = self.global_state.user_manager.clone();
         let event_rx = self.bot_state.event_handler.tx.subscribe();

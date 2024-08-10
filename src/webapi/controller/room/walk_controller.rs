@@ -2,8 +2,10 @@ use std::sync::Arc;
 use axum::{Extension, Json};
 use axum::extract::Path;
 use http::StatusCode;
-use rand::Rng;
+use rand::{Rng, SeedableRng};
+use rand::rngs::StdRng;
 use serde::{Deserialize};
+use tracing::debug;
 use crate::communication::outgoing::composer;
 use crate::communication::outgoing::composer::Composable;
 use crate::retro;
@@ -106,12 +108,16 @@ pub async fn walk_randomly(
 
             let session_service = handler.get_session_service();
 
-            let mut rng = rand::thread_rng();
-            let x = rng.gen_range(1..32);
-            let y = rng.gen_range(1..32);
             tokio::spawn(async move {
                 for room_user in room_users {
+                    // each bot walks to its own random destination
+                    let mut rng = StdRng::from_entropy();
+                    let x = rng.gen_range(1..32);
+                    let y = rng.gen_range(1..32);
+
                     if let Some(session) = session_service.get(&room_user) {
+                        debug!("Player {} moved to pos (x: {}, y: {}", &session.ticket, &x, &y);
+
                         let msg = composer::WalkInRoom { x, y }.compose();
 
                         let _ = session_service.send(&session, msg).await;

@@ -14,7 +14,7 @@ pub struct AddSession {
 }
 
 pub async fn add(connection_service: Extension<Arc<retro::Manager>>, Json(payload): Json<AddSession>) -> StatusCode {
-    return match connection_service.get_hotel_connection_handler(payload.hotel) {
+    match connection_service.get_hotel_connection_handler(payload.hotel) {
         Ok(handler) => {
             if let Err(err) = handler.new_client(payload.auth_ticket.clone()).await {
                 error!("unable to add session {}, reason: {:?}", payload.auth_ticket, err);
@@ -30,7 +30,7 @@ pub async fn add(connection_service: Extension<Arc<retro::Manager>>, Json(payloa
 
             StatusCode::INTERNAL_SERVER_ERROR
         }
-    };
+    }
 }
 
 #[derive(Deserialize)]
@@ -40,7 +40,7 @@ pub struct AddSessionMany {
 }
 
 pub async fn add_many(connection_service: Extension<Arc<retro::Manager>>, Json(payload): Json<AddSessionMany>) -> StatusCode {
-    return match connection_service.get_hotel_connection_handler(payload.hotel) {
+    match connection_service.get_hotel_connection_handler(payload.hotel) {
         Ok(handler) => {
             for ticket in payload.tickets {
                 let handler_clone = handler.clone();
@@ -61,5 +61,5 @@ pub async fn add_many(connection_service: Extension<Arc<retro::Manager>>, Json(p
 
             StatusCode::INTERNAL_SERVER_ERROR
         }
-    };
+    }
 }

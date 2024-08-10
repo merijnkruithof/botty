@@ -19,7 +19,7 @@ pub async fn handle(
         return Ok(response);
     }
 
-    return match get_token_from_headers(&headers) {
+    match get_token_from_headers(&headers) {
         Ok(token) => {
             if token == state.auth_token {
                 let response = next.run(request).await;
@@ -45,5 +45,5 @@ fn get_token_from_headers(headers: &HeaderMap) -> Result<&str> {
         }
     }
 
-    return Err(anyhow!("Auth token not found in header"));
+    Err(anyhow!("Auth token not found in header"))
 }

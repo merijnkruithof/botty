@@ -80,8 +80,6 @@ impl Manager {
             }
         }
 
-
-
         info!("Stopped room listener");
 
         Ok(())
