@@ -41,10 +41,10 @@ impl Manager {
     }
 
     pub fn list_retros(&self) -> anyhow::Result<Vec<String>> {
-        return Ok(self.handlers
+        Ok(self.handlers
             .iter()
             .map(|entry| entry.key().clone())
             .collect()
-        );
+        )
     }
 }

@@ -52,7 +52,7 @@ impl Reader {
             let buf: Vec<u8> = self.buffer[self.position..self.position + str_len].to_vec();
             self.position += str_len;
 
-            return match String::from_utf8(buf) {
+            match String::from_utf8(buf) {
                 Ok(str) => Some(str),
                 Err(err) => {
                     error!("Unable to read string from reader: {:?}", err);

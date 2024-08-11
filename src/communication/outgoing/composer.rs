@@ -243,3 +243,19 @@ impl Composable for Dance {
         Message::binary(buf.to_vec())
     }
 }
+
+pub struct FriendRequest {
+    pub username: String,
+}
+
+impl Composable for FriendRequest {
+    fn compose(&self) -> Message {
+        let mut buf = BytesMut::new();
+        let mut writer = Writer::new(&mut buf);
+
+        writer.write_uint16(3157);
+        writer.write_string(self.username.as_str());
+
+        Message::binary(buf.to_vec())
+    }
+}

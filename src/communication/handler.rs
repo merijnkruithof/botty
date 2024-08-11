@@ -70,7 +70,7 @@ impl Handler {
         let event_handler = self.bot_state.event_handler.clone();
         let sso = self.bot_state.session.ticket.clone();
 
-        return tokio::spawn(async move {
+        tokio::spawn(async move {
             loop {
                 match receiver.recv().await {
                     Ok(data) => {
@@ -97,7 +97,7 @@ impl Handler {
                     },
                 }
             }
-        });
+        })
     }
 
     fn handle_ping_pong(&self, mut kill_rx: watch::Receiver<bool>) -> JoinHandle<()> {
@@ -105,7 +105,7 @@ impl Handler {
         let packet_tx = self.bot_state.packet_tx.clone();
         let sso = self.bot_state.session.ticket.clone();
 
-        return tokio::spawn(async move {
+        tokio::spawn(async move {
             loop {
                 tokio::select! {
                     data = subscriber.recv() => {
@@ -125,7 +125,7 @@ impl Handler {
                     }
                 }
             }
-        });
+        })
     }
 
     fn handle_authentication_ok(&self, mut kill_rx: watch::Receiver<bool>) -> JoinHandle<()> {
@@ -133,7 +133,7 @@ impl Handler {
         let sso = self.bot_state.session.ticket.clone();
         let packet_tx = self.bot_state.packet_tx.clone();
 
-        return tokio::spawn(async move {
+        tokio::spawn(async move {
             loop {
                 tokio::select! {
                     data = subscriber.recv() => {
@@ -154,7 +154,7 @@ impl Handler {
                     }
                 }
             }
-        });
+        })
     }
 
     fn create_user_listener(&self, kill_rx: Receiver<bool>) -> JoinHandle<()> {
