@@ -56,7 +56,7 @@ impl Service {
     }
 
     pub fn all(&self) -> Vec<Arc<Session>> {
-        return self.items.iter().map(|item| item.value().clone()).collect();
+        self.items.iter().map(|item| item.value().clone()).collect()
     }
 
     pub async fn broadcast(&self, msg: Message) {

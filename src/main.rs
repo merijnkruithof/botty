@@ -13,7 +13,7 @@ use crate::webapi::actions::web::WebService;
 use crate::webapi::controller;
 use crate::webapi::controller::bot::{bot_controller, message_controller};
 use crate::webapi::controller::hotel_controller;
-use crate::webapi::controller::room::{enter_room_controller, room_action_controller, walk_controller};
+use crate::webapi::controller::room::{enter_room_controller, room_dance_controller, walk_controller};
 
 mod webapi;
 mod app_config;
@@ -86,10 +86,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .route("/api/bots/bulk_update", put(bot_controller::bulk_update))
             .route("/api/bots/:ticket", post(bot_controller::show))
             .route("/api/bots/:ticket", put(bot_controller::update))
+            // .route("/api/bots/send_friend_request", post())
             .route("/api/rooms/enter", post(enter_room_controller::enter_room))
             .route("/api/rooms/:room_id/walk_to_position", post(walk_controller::walk_to_position))
             .route("/api/rooms/:room_id/walk_to_random_position", post(walk_controller::walk_randomly))
-            .route("/api/rooms/:room_id/action", post(room_action_controller::act))
+            .route("/api/rooms/:room_id/dance", post(room_dance_controller::dance))
             .route("/api/bots/broadcast/message", post(message_controller::broadcast_message))
             .route("/api/bots/broadcast/enter_room", post(webapi::bot::broadcast_enter_room))
             .route("/api/bots/broadcast/cfh_abuse", post(webapi::bot::broadcast_cfh_abuse));

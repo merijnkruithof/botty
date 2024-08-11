@@ -227,3 +227,19 @@ impl Composable for UpdateLook {
         Message::binary(buf.to_vec())
     }
 }
+
+pub struct Dance {
+    pub dance_id: u32
+}
+
+impl Composable for Dance {
+    fn compose(&self) -> Message {
+        let mut buf = BytesMut::new();
+        let mut writer = Writer::new(&mut buf);
+
+        writer.write_uint16(2080);
+        writer.write_uint32(self.dance_id);
+
+        Message::binary(buf.to_vec())
+    }
+}
