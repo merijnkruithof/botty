@@ -27,3 +27,8 @@ uuid = { version = "1.7.0", features = ["v4", "fast-rng", "macro-diagnostics"] }
 rand = "0.8.5"
 log = "0.4.20"
 defer = "0.2.1"
+utoipa = { version = "5.0.0-alpha.1", features = ["default", "axum_extras"] }
+utoipa-redoc = { version = "4.0.1-alpha.0", features = ["axum"]}
+utoipa-swagger-ui = { version = "7.1.1-alpha.0", features = ["default", "axum"]}
+utoipa-scalar = { version = "0.2.0-alpha.0", features = ["axum"]}
+utoipa-rapidoc = { version = "4.0.1-alpha.0", features = ["axum"] }

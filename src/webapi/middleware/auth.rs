@@ -4,7 +4,7 @@ use axum::extract::State;
 use http::{HeaderMap, StatusCode};
 
 
-use tracing::error;
+use tracing::{debug, error};
 
 use crate::webapi::app_state::AppState;
 
@@ -14,7 +14,8 @@ pub async fn handle(
     request: Request,
     next: Next,
 ) -> Result<Response, StatusCode> {
-    if request.method().as_str() == "OPTIONS" {
+    // ad hoc solution
+    if request.method().as_str() == "OPTIONS" || request.uri().path().contains("/api-docs") {
         let response = next.run(request).await;
         return Ok(response);
     }

@@ -12,6 +12,7 @@ use log::warn;
 use tokio_tungstenite::tungstenite::connect;
 use tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode::Status;
 use tracing::error;
+use utoipa::{OpenApi, ToSchema};
 use uuid::uuid;
 use crate::communication::outgoing::composer;
 use crate::communication::outgoing::composer::Composable;
@@ -19,13 +20,20 @@ use crate::connection::session::Session;
 use crate::core::taskmgr::task;
 use crate::core::taskmgr::task::KillableTask;
 
-#[derive(Serialize)]
+#[derive(OpenApi)]
+#[openapi(
+    paths(index,),
+    components(schemas(AvailableBots,BotInfo,BotsRequest))
+)]
+pub struct BotApi;
+
+#[derive(Serialize, ToSchema)]
 pub struct AvailableBots {
     n: usize,
     bots: Option<Vec<BotInfo>>
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct BotInfo {
     pub user_id: u32,
     pub username: String,
@@ -34,15 +42,31 @@ pub struct BotInfo {
     pub gender: String,
     pub sso_ticket: String
 }
-#[derive(Deserialize)]
+
+#[derive(Deserialize, ToSchema)]
 pub struct BotsRequest {
     hotel: String,
 }
 
-pub async fn index(
-    connection_service: Extension<Arc<retro::Manager>>,
-    Json(payload): Json<BotsRequest>
-) -> Result<Json<AvailableBots>, StatusCode> {
+#[utoipa::path(
+    post,
+    path = "/",
+    request_body(
+        content = BotsRequest,
+        description = "Payload to request bots based on the hotel",
+        content_type = "application/json"
+    ),
+    responses(
+        (status = 200, description = "List of available bots", body = AvailableBots),
+        (status = 400, description = "Bad request"),
+    ),
+    security(
+        ("api_key" = [])
+    ),
+
+    tag = "bots"
+)]
+pub async fn index(connection_service: Extension<Arc<retro::Manager>>, Json(payload): Json<BotsRequest>) -> Result<Json<AvailableBots>, StatusCode> {
     match connection_service.get_hotel_connection_handler(payload.hotel) {
         Ok(handler) => {
             let mut response = AvailableBots{

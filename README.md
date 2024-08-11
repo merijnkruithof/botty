@@ -10,8 +10,8 @@ It's not a standalone application, but rather a server application that should b
 
 # Roadmap
 - [X] WebSockets
-- [X] Task (or rather thread) manager
-- [X] SSO authentication & ping pong
+- [X] Task Manager
+- [X] Bot authentication
 - [X] API authentication
 - [X] Updating appearance (look and gender)
 - [X] Ability to add SSO tickets dynamically

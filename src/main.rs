@@ -1,11 +1,18 @@
 use std::sync::Arc;
-
-
+use axum::Json;
 use axum::routing::{delete, get, post, put};
 use tower_http::cors::CorsLayer;
 use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
-
+use utoipa::{
+    openapi::security::{ApiKey, ApiKeyValue, SecurityScheme},
+    Modify, ToSchema
+};
+use utoipa_redoc::{Redoc, Servable};
+use utoipa_scalar::{Scalar, Servable as ScalarServable};
+use utoipa_swagger_ui::SwaggerUi;
+use utoipa::OpenApi;
+use utoipa_rapidoc::RapiDoc;
 use crate::client::hotel;
 use crate::core::taskmgr::task;
 
@@ -51,6 +58,30 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     tracing::subscriber::set_global_default(subscriber).unwrap();
 
+    #[derive(OpenApi, Debug)]
+    #[openapi(
+        modifiers(&SecurityAddon),
+        nest(
+            (path = "/api/bots", api = bot_controller::BotApi)
+        ),
+        modifiers(&SecurityAddon),
+    )]
+    struct ApiDoc;
+
+    struct SecurityAddon;
+
+    impl Modify for SecurityAddon {
+        fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+            if let Some(components) = openapi.components.as_mut() {
+                components.add_security_scheme(
+                    "Auth token (x-auth-token)",
+                    SecurityScheme::ApiKey(ApiKey::Header(ApiKeyValue::new("x-auth-token"))),
+                )
+            }
+        }
+    }
+
+
     let retro_manager = Arc::new(retro::Manager::new());
     let task_manager = Arc::new(task::Manager::new());
 
@@ -72,7 +103,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 info!("Added hotel");
 
-                retro_manager_clone.add_hotel(name, manager).await?;
+                retro_manager_clone.add_hotel(name, manager).await.unwrap();
             });
         }
     }
@@ -81,6 +112,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     web_service.configure_routes(|router| {
         let router = router.route("/api/health", get(webapi::health::index));
         let router = router.route("/api/tasks/delete", delete(webapi::task::kill_task));
+
+        // Add Swagger UI
+        let swagger_ui = SwaggerUi::new("/api-docs/swagger/")
+            .url("/api-docs/openapi.json", ApiDoc::openapi());
+
+        let router = router.merge(swagger_ui)
+            .merge(Redoc::with_url("/api-docs/redoc/", ApiDoc::openapi()))
+            .merge(RapiDoc::new("/api-docs/openapi.json").path("/api-docs/rapidoc"));
 
         let router = router
             .route("/api/bots", post(bot_controller::index))
