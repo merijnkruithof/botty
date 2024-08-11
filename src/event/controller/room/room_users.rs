@@ -31,7 +31,7 @@ impl RoomUsersHandler {
     pub fn handle(&self, reader: Reader) -> anyhow::Result<()> {
         let event = room_users_parser::parse(reader);
 
-        self.tx.send(ControllerEvent::RoomUsers { data: event }).unwrap();
+        self.tx.send(ControllerEvent::RoomUsers { data: event })?;
 
         Ok(())
     }

@@ -7,7 +7,7 @@ pub struct RoomOpenHandler {
 
 impl RoomOpenHandler {
     pub fn handle(&self) -> anyhow::Result<()> {
-        self.tx.send(ControllerEvent::RoomOpen).unwrap();
+        self.tx.send(ControllerEvent::RoomOpen)?;
 
         Ok(())
     }

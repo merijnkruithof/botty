@@ -29,7 +29,7 @@ impl RoomUserStatusHandler {
     pub fn handle(&self, reader: Reader) -> anyhow::Result<()> {
         let event = room_user_status_parser::parse(reader);
 
-        self.tx.send(RoomUserStatus { data: event }).unwrap();
+        self.tx.send(RoomUserStatus { data: event })?;
 
         Ok(())
     }

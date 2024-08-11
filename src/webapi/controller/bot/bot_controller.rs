@@ -85,7 +85,7 @@ pub async fn show(
     connection_service: Extension<Arc<retro::Manager>>,
     Json(payload): Json<ShowBotRequest>
 ) -> Result<Json<BotInfo>, StatusCode> {
-    return match connection_service.get_hotel_connection_handler(payload.hotel) {
+    match connection_service.get_hotel_connection_handler(payload.hotel) {
         Ok(handler) => {
             let user_manager = handler.global_state().user_manager.clone();
 

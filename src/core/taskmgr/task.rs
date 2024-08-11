@@ -53,7 +53,7 @@ impl Manager {
     }
 
     pub fn has_task(&self, name: String) -> bool {
-        return self.tasks.contains_key(&name);
+        self.tasks.contains_key(&name)
     }
 
     pub async fn kill_task(&self, name: String) -> bool {
@@ -68,6 +68,6 @@ impl Manager {
 
     pub fn add_task(&self, handle: KillableTask) -> bool {
         self.tasks.insert(handle.name.clone(), handle);
-        return true;
+        true
     }
 }

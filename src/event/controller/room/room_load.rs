@@ -21,7 +21,7 @@ impl RoomLoadedHandler {
         let room_loaded_event = room_load_parser::parse(reader);
 
         // Dispatch RoomLoadedEvent
-        self.tx.send(ControllerEvent::RoomLoaded { data: room_loaded_event }).unwrap();
+        self.tx.send(ControllerEvent::RoomLoaded { data: room_loaded_event })?;
 
         Ok(())
     }

@@ -18,7 +18,7 @@ impl RoomModelHandler {
     pub fn handle(&self, reader: Reader) -> anyhow::Result<()> {
         let event = room_model_parser::parse(reader);
 
-        self.tx.send(RoomModel { data: event }).unwrap();
+        self.tx.send(RoomModel { data: event })?;
 
         Ok(())
     }
