@@ -21,9 +21,9 @@ It's not a standalone application, but rather a server application that should b
 - [X] Enter rooms
 - [X] CFH abuse
 - [X] Bulk update
-- [ ] Friend requests
+- [X] Friend requests
 - [X] Walking & following in a room
   - [X] Ability to walk to a specific x and y coordinate
   - [X] Ability to walk arbitrarily
-- [ ] Room actions (such as dancing, room effects, handitem, and perhaps more)
+- [X] Dancing
 - [ ] Retro Management (via API)

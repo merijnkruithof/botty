@@ -72,7 +72,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 info!("Added hotel");
 
-                retro_manager_clone.add_hotel(name, manager).await.unwrap();
+                retro_manager_clone.add_hotel(name, manager).await?;
             });
         }
     }
