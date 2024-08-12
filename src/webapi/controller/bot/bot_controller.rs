@@ -50,7 +50,7 @@ pub struct BotsRequest {
 
 #[utoipa::path(
     post,
-    path = "/",
+    path = "",
     request_body(
         content = BotsRequest,
         description = "Payload to request bots based on the hotel",

@@ -74,7 +74,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
             if let Some(components) = openapi.components.as_mut() {
                 components.add_security_scheme(
-                    "Auth token (x-auth-token)",
+                    "api_key",
                     SecurityScheme::ApiKey(ApiKey::Header(ApiKeyValue::new("x-auth-token"))),
                 )
             }
