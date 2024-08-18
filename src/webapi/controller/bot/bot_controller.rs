@@ -22,14 +22,13 @@ use crate::core::taskmgr::task::KillableTask;
 
 #[derive(OpenApi)]
 #[openapi(
-    paths(index,),
-    components(schemas(AvailableBots,BotInfo,BotsRequest))
+    paths(index,show),
+    components(schemas(AvailableBots,BotInfo,BotsRequest, ShowBotRequest,BulkUpdateResponse))
 )]
 pub struct BotApi;
 
 #[derive(Serialize, ToSchema)]
 pub struct AvailableBots {
-    n: usize,
     bots: Option<Vec<BotInfo>>
 }
 
@@ -49,8 +48,9 @@ pub struct BotsRequest {
 }
 
 #[utoipa::path(
-    post,
+    get,
     path = "",
+    description = "Get all online bots including all user info.",
     request_body(
         content = BotsRequest,
         description = "Payload to request bots based on the hotel",
@@ -64,46 +64,59 @@ pub struct BotsRequest {
         ("api_key" = [])
     ),
 
-    tag = "bots"
+    tag = "Bot"
 )]
 pub async fn index(connection_service: Extension<Arc<retro::Manager>>, Json(payload): Json<BotsRequest>) -> Result<Json<AvailableBots>, StatusCode> {
-    match connection_service.get_hotel_connection_handler(payload.hotel) {
-        Ok(handler) => {
-            let mut response = AvailableBots{
-                n: handler.get_session_service().online_bots(),
-                bots: None,
-            };
+    let handler = connection_service.get_hotel_connection_handler(payload.hotel).map_err(|_| StatusCode::NOT_FOUND)?;
 
-            let user_manager = handler.global_state().user_manager.clone();
-            let bots: Vec<BotInfo> = user_manager.users().iter().map(|entry| {
-                BotInfo{
-                    user_id: entry.user_id.clone(),
-                    username: entry.username.clone(),
-                    motto: entry.motto.clone(),
-                    figure: entry.figure.clone(),
-                    gender: entry.gender.clone(),
-                    sso_ticket: entry.sso_ticket.clone()
-                }
-            }).collect();
+    let mut response = AvailableBots{
+        bots: None,
+    };
 
-            if bots.len() > 0 {
-                response.bots = Some(bots);
-            }
+    let user_manager = handler.global_state().user_manager.clone();
+    let bots: Vec<BotInfo> = user_manager.users().iter().map(|entry| {
+        BotInfo{
+            user_id: entry.user_id.clone(),
+            username: entry.username.clone(),
+            motto: entry.motto.clone(),
+            figure: entry.figure.clone(),
+            gender: entry.gender.clone(),
+            sso_ticket: entry.sso_ticket.clone()
+        }
+    }).collect();
 
-            Ok(Json(response))
-        },
-
-        Err(_err) => {
-            Err(StatusCode::NOT_FOUND)
-        },
+    if bots.len() > 0 {
+        response.bots = Some(bots);
     }
+
+    Ok(Json(response))
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct ShowBotRequest {
     hotel: String,
 }
 
+
+#[utoipa::path(
+    get,
+    path = "/{ticket}",
+    description = "Get a single bot's information.",
+    request_body(
+        content = ShowBotRequest,
+        description = "Payload to request a single based on the hotel",
+        content_type = "application/json"
+    ),
+    responses(
+        (status = 200, description = "The requested bot", body = AvailableBots),
+        (status = 400, description = "Bad request"),
+    ),
+    security(
+        ("api_key" = [])
+    ),
+
+    tag = "Bot"
+)]
 pub async fn show(
     ticket: Path<String>,
     connection_service: Extension<Arc<retro::Manager>>,
@@ -131,100 +144,130 @@ pub async fn show(
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct UpdateBot {
     hotel: String,
     motto: Option<String>,
     appearance: Option<UpdateAppearance>
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct UpdateAppearance {
     gender: String,
     figure: String
 }
 
+#[utoipa::path(
+    put,
+    path = "/{ticket}",
+    description = "Update a single bot.",
+    request_body(
+        content = UpdateBot,
+        description = "Payload to update a single bot.",
+        content_type = "application/json"
+    ),
+    responses(
+        (status = 200, description = "The requested bot", body = AvailableBots),
+        (status = 400, description = "Bad request"),
+        (status = 404, description = "Hotel or bot not found"),
+    ),
+    security(
+        ("api_key" = [])
+    ),
+
+    tag = "Bot"
+)]
 pub async fn update(
     ticket: Path<String>,
     connection_service: Extension<Arc<retro::Manager>>,
     Json(payload): Json<UpdateBot>
 ) -> Result<(), StatusCode> {
-    match connection_service.get_hotel_connection_handler(payload.hotel) {
-        Ok(handler) => {
-            let session_service = handler.get_session_service();
+    let handler = connection_service.get_hotel_connection_handler(payload.hotel).map_err(|_| StatusCode::NOT_FOUND)?;
 
-            if let Some(session) = session_service.get(&ticket) {
-                if let Some(motto) = payload.motto {
-                    let _ = session_service.send(&session, composer::UpdateMotto { motto}.compose()).await;
-                }
+    let session_service = handler.get_session_service();
 
-                if let Some(appearance) = payload.appearance {
-                    let _ = session_service.send(&session, composer::UpdateLook { figure: appearance.figure, gender: appearance.gender }.compose()).await;
-                }
-
-                Ok(())
-            } else {
-                Err(StatusCode::NOT_FOUND)
-            }
-        },
-
-        Err(_) => {
-            Err(StatusCode::NOT_FOUND)
+    if let Some(session) = session_service.get(&ticket) {
+        if let Some(motto) = payload.motto {
+            let _ = session_service.send(&session, composer::UpdateMotto { motto }.compose()).await;
         }
+
+        if let Some(appearance) = payload.appearance {
+            let _ = session_service.send(&session, composer::UpdateLook { figure: appearance.figure, gender: appearance.gender }.compose()).await;
+        }
+
+        Ok(())
+    } else {
+        Err(StatusCode::NOT_FOUND)
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct BulkUpdateBot {
     hotel: String,
     bots: HashMap<String, UpdatableBulk>
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct UpdatableBulk {
     motto: Option<String>,
     appearance: Option<UpdateAppearance>
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct BulkUpdateResponse {
     task_id: String,
 }
 
+#[utoipa::path(
+    put,
+    path = "/bulk_update",
+    description = "Update a batch of bots.",
+    request_body(
+        content = BulkUpdateBot,
+        description = "Payload to update a bunch of bots at the same time.",
+        content_type = "application/json"
+    ),
+    responses(
+        (status = 200, description = "Task ID", body = BulkUpdateResponse),
+        (status = 400, description = "Bad request"),
+        (status = 404, description = "Hotel not found"),
+    ),
+    security(
+        ("api_key" = [])
+    ),
+
+    tag = "Bot"
+)]
 pub async fn bulk_update(
     connection_service: Extension<Arc<retro::Manager>>,
     task_manager: Extension<Arc<task::Manager>>,
     Json(payload): Json<BulkUpdateBot>
 ) -> Result<Json<BulkUpdateResponse>, StatusCode> {
-    match connection_service.get_hotel_connection_handler(payload.hotel) {
-        Ok(handler) => {
-            let task_id = uuid::Uuid::new_v4().to_string();
+    let handler = connection_service.get_hotel_connection_handler(payload.hotel).map_err(|_| StatusCode::NOT_FOUND)?;
 
-            // Create cloned values for the thread
-            let cloned_task_id = task_id.clone();
-            let cloned_task_manager = task_manager.clone();
-            let session_service = handler.get_session_service();
-            task_manager.add_task(KillableTask::new(task_id.clone(), async move {
-                for (sso_ticket, updatable) in payload.bots {
-                    if let Some(session) = session_service.get(&sso_ticket) {
-                        if let Some(motto) = updatable.motto {
-                            let _ = session_service.send(&session, composer::UpdateMotto { motto}.compose()).await;
-                        }
+    let task_id = uuid::Uuid::new_v4().to_string();
 
-                        if let Some(appearance) = updatable.appearance {
-                            let _ = session_service.send(&session, composer::UpdateLook { figure: appearance.figure, gender: appearance.gender }.compose()).await;
-                        }
-                    } else {
-                        error!("Bulk update task {}: unable to get session for auth ticket {}", &cloned_task_id, &sso_ticket);
-                    }
+    // Create cloned values for the thread
+    let cloned_task_id = task_id.clone();
+    let cloned_task_manager = task_manager.clone();
+    let session_service = handler.get_session_service();
+    task_manager.add_task(KillableTask::new(task_id.clone(), async move {
+        for (sso_ticket, updatable) in payload.bots {
+            if let Some(session) = session_service.get(&sso_ticket) {
+                if let Some(motto) = updatable.motto {
+                    let _ = session_service.send(&session, composer::UpdateMotto { motto}.compose()).await;
                 }
 
-                let _ = cloned_task_manager.kill_task(cloned_task_id).await;
-            }));
+                if let Some(appearance) = updatable.appearance {
+                    let _ = session_service.send(&session, composer::UpdateLook { figure: appearance.figure, gender: appearance.gender }.compose()).await;
+                }
+            } else {
+                error!("Bulk update task {}: unable to get session for auth ticket {}", &cloned_task_id, &sso_ticket);
+            }
+        }
 
-            Ok(Json(BulkUpdateResponse { task_id }))
-        },
+        let _ = cloned_task_manager.kill_task(cloned_task_id).await;
+    }));
 
-        Err(_) => Err(StatusCode::NOT_FOUND),
-    }
+    Ok(Json(BulkUpdateResponse { task_id }))
 }

@@ -1071,6 +1071,7 @@ dependencies = [
  "log",
  "rand",
  "serde 1.0.197",
+ "serde_json",
  "tokio",
  "tokio-tungstenite",
  "tower",

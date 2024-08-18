@@ -1,6 +1,8 @@
 use std::sync::Arc;
 use axum::Json;
 use axum::routing::{delete, get, post, put};
+use tokio::fs::File;
+use tokio::io::AsyncWriteExt;
 use tower_http::cors::CorsLayer;
 use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
@@ -48,9 +50,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
    |  |      |  `---.|  '-'  |  |  | |  |\       /\  '-'(_ .'\       /
    `--'      `------' `-----'   `--' `--' `-----'  `-----'    `-----'  "#;
     println!("{}", ascii_art);
-    println!("Pegasus Server");
-    println!("Developed by Merijn (Discord: merijnn)");
-    println!("-------------------------------------------------------------------------------");
 
     let subscriber = FmtSubscriber::builder()
         .with_max_level(Level::TRACE)
@@ -101,12 +100,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let connector = Arc::new(connection::Connector::new(ws_link, origin));
                 let manager = Arc::new(hotel::Manager::new(connector));
 
-                info!("Added hotel");
-
                 retro_manager_clone.add_hotel(name, manager).await.unwrap();
             });
         }
     }
+
+    let openapi = ApiDoc::openapi();
+    let json = serde_json::to_string_pretty(&openapi).unwrap();
+
+    let mut file = File::create("openapi.json").await.unwrap();
+    file.write_all(json.as_bytes()).await.unwrap();
 
     // Configure routes
     web_service.configure_routes(|router| {
@@ -122,9 +125,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .merge(RapiDoc::new("/api-docs/openapi.json").path("/api-docs/rapidoc"));
 
         let router = router
-            .route("/api/bots", post(bot_controller::index))
+            .route("/api/bots", get(bot_controller::index))
             .route("/api/bots/bulk_update", put(bot_controller::bulk_update))
-            .route("/api/bots/:ticket", post(bot_controller::show))
+            .route("/api/bots/:ticket", get(bot_controller::show))
             .route("/api/bots/:ticket", put(bot_controller::update))
             .route("/api/bots/:ticket/send_friend_request", post(friend_request::send_friend_request))
             .route("/api/bots/broadcast/send_friend_request", post(broadcast_send_friend_request))
