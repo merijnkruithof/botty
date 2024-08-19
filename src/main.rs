@@ -125,6 +125,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .merge(RapiDoc::new("/api-docs/openapi.json").path("/api-docs/rapidoc"));
 
         let router = router
+            .route("/api/hotel", post(hotel_controller::add_hotel))
+            .route("/api/hotel/delete", post(hotel_controller::delete_hotel))
             .route("/api/bots", get(bot_controller::index))
             .route("/api/bots/bulk_update", put(bot_controller::bulk_update))
             .route("/api/bots/:ticket", get(bot_controller::show))

@@ -11,7 +11,7 @@ pub struct PingHandler {
 
 impl PingHandler {
     pub fn handle(&self) -> Result<()> {
-        self.tx.send(ControllerEvent::Ping).unwrap();
+        self.tx.send(ControllerEvent::Ping)?;
 
         Ok(())
     }

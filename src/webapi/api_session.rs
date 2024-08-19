@@ -39,7 +39,7 @@ pub struct AddSessionMany {
     tickets: Vec<String>
 }
 
-pub async fn add_many(connection_service: Extension<Arc<retro::Manager>>, Json(payload): Json<AddSessionMany>) -> StatusCode {
+pub async fn    add_many(connection_service: Extension<Arc<retro::Manager>>, Json(payload): Json<AddSessionMany>) -> StatusCode {
     match connection_service.get_hotel_connection_handler(payload.hotel) {
         Ok(handler) => {
             for ticket in payload.tickets {

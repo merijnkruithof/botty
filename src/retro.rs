@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use anyhow::anyhow;
 use dashmap::DashMap;
-
+use futures_util::TryFutureExt;
 use crate::client;
 
 // Manager takes full responsibility of listing, adding, and removing retro's from Pegasus. It
@@ -38,6 +38,14 @@ impl Manager {
         let handler = self.handlers.get(&name).unwrap();
 
         Ok(handler.clone())
+    }
+
+    pub fn delete_hotel_connection_handler(&self, name: String) -> anyhow::Result<()> {
+        if let Some(_) = self.handlers.remove(&name) {
+            Ok(())
+        } else {
+            Err(anyhow!("Unable to find handler with name {}", &name))
+        }
     }
 
     pub fn list_retros(&self) -> anyhow::Result<Vec<String>> {

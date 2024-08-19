@@ -8,8 +8,6 @@ use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 use tokio_tungstenite::tungstenite::Message;
 use tracing::{error, info};
 
-
-
 pub struct Sender { }
 
 impl Sender {

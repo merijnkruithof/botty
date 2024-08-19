@@ -36,10 +36,10 @@ impl Manager {
     }
 
     pub fn bot_states(&self) -> Vec<Arc<BotState>> {
-        return self.client_states
+        self.client_states
             .iter()
             .map(|entry| entry.value().clone())
-            .collect();
+            .collect()
     }
 
     pub async fn new_client(&self, auth_ticket: String) -> Result<()>  {

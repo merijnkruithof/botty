@@ -11,7 +11,7 @@ pub struct Session {
     pub ticket: String,
 
     // packet_tx is a channel for sending packets to the underlying network stream.
-    packet_tx: Sender<Message>,
+    pub packet_tx: Sender<Message>,
 }
 
 impl Session {
@@ -52,7 +52,7 @@ impl Service {
     }
 
     pub fn online_bots(&self) -> usize {
-        return self.items.len();
+        self.items.len()
     }
 
     pub fn all(&self) -> Vec<Arc<Session>> {
