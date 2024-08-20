@@ -1,24 +1,48 @@
 use std::sync::Arc;
 
 use axum::{Extension, Json};
+use axum::extract::Path;
 use http::StatusCode;
 use serde::{Deserialize, Serialize};
 use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::tungstenite::protocol::CloseFrame;
 use tracing::error;
+use utoipa::{OpenApi, ToSchema};
 use crate::client::hotel;
 use crate::{connection, retro};
 
-#[derive(Serialize)]
+
+#[derive(OpenApi, Debug)]
+#[openapi(
+    paths(list,add_hotel,delete_hotel),
+    components(schemas(AvailableHotelItem,AvailableHotel,AddHotel))
+)]
+pub(crate) struct HotelApi;
+
+#[derive(Serialize, ToSchema)]
 pub struct AvailableHotelItem {
     pub name: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct AvailableHotel {
     items: Vec<AvailableHotelItem>
 }
 
+#[utoipa::path(
+    get,
+    path = "/",
+    description = "Get all available hotels.",
+    responses(
+        (status = 200, description = "Available hotels", body = AvailableHotel),
+        (status = 404, description = "Bad request"),
+    ),
+    security(
+        ("api_key" = [])
+    ),
+
+    tag = "Hotel"
+)]
 pub async fn list(connection_service: Extension<Arc<retro::Manager>>) -> Result<Json<AvailableHotel>, StatusCode> {
     if let Ok(retros) = connection_service.list_retros() {
         Ok(Json(AvailableHotel{
@@ -29,14 +53,34 @@ pub async fn list(connection_service: Extension<Arc<retro::Manager>>) -> Result<
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct AddHotel {
     name: String,
     ws_link: String,
+    origin: String,
 }
 
+#[utoipa::path(
+    post,
+    path = "/",
+    description = "Add a new retro hotel to Pegasus.",
+    request_body(
+        content = AddHotel,
+        description = "Add a new hotel to Pegasus",
+        content_type = "application/json"
+    ),
+    responses(
+        (status = 200, description = "Hotel added"),
+        (status = 409, description = "Conflict - Hotel already exists"),
+    ),
+    security(
+        ("api_key" = [])
+    ),
+
+    tag = "Hotel"
+)]
 pub async fn add_hotel(connection_service: Extension<Arc<retro::Manager>>, Json(payload): Json<AddHotel>) -> Result<(), StatusCode> {
-    let connector = connection::Connector::new(payload.name.clone(), payload.ws_link.clone());
+    let connector = connection::Connector::new(payload.ws_link.clone(), payload.origin.clone());
     let hotel_manager = hotel::Manager::new(Arc::new(connector));
 
     let _ = connection_service.add_hotel(payload.name.clone(), Arc::new(hotel_manager)).await.map_err(|previous_err| {
@@ -48,20 +92,29 @@ pub async fn add_hotel(connection_service: Extension<Arc<retro::Manager>>, Json(
     Ok(())
 }
 
-#[derive(Deserialize)]
-pub struct DeleteHotel {
-    name: String,
-}
+#[utoipa::path(
+    delete,
+    path = "/{name}",
+    description = "Delete an existing hotel.",
+    responses(
+        (status = 200, description = "Hotel deleted"),
+        (status = 404, description = "Hotel not found"),
+    ),
+    security(
+        ("api_key" = [])
+    ),
 
-pub async fn delete_hotel(connection_service: Extension<Arc<retro::Manager>>, Json(payload): Json<DeleteHotel>) -> Result<(), StatusCode> {
-    let hotel_manager = connection_service.get_hotel_connection_handler(payload.name.clone()).map_err(|_| StatusCode::NOT_FOUND)?;
+    tag = "Hotel"
+)]
+pub async fn delete_hotel(Path(name): Path<String>, connection_service: Extension<Arc<retro::Manager>>) -> Result<(), StatusCode> {
+    let hotel_manager = connection_service.get_hotel_connection_handler(name.clone()).map_err(|_| StatusCode::NOT_FOUND)?;
 
-    // Disconnect each session
+    // Disconnect each bot
     for state in hotel_manager.bot_states() {
         let _ = state.packet_tx.send(Message::Close(None)).await.unwrap();
     }
 
-    let _ = connection_service.delete_hotel_connection_handler(payload.name);
+    let _ = connection_service.delete_hotel_connection_handler(name);
 
     Ok(())
 }

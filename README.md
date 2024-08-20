@@ -5,9 +5,6 @@ Pegasus is a high-performance server with a low memory footprint. It should be a
 if your resources are limited. Pegasus can be run on a Virtual Private Server (VPS) or a dedicated server. 
 It's not a standalone application, but rather a server application that should be reached from an external address.
 
-### Usage
-
-
 # Roadmap
 - [X] WebSockets
 - [X] Task Manager
@@ -26,4 +23,4 @@ It's not a standalone application, but rather a server application that should b
   - [X] Ability to walk to a specific x and y coordinate
   - [X] Ability to walk arbitrarily
 - [X] Dancing
-- [ ] Retro Management (via API)
+- [X] Retro Management (via API)

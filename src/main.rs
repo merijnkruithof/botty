@@ -60,10 +60,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     #[derive(OpenApi, Debug)]
     #[openapi(
         modifiers(&SecurityAddon),
-        nest(
-            (path = "/api/bots", api = bot_controller::BotApi)
-        ),
-        modifiers(&SecurityAddon),
     )]
     struct ApiDoc;
 
@@ -79,7 +75,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
     }
-
 
     let retro_manager = Arc::new(retro::Manager::new());
     let task_manager = Arc::new(task::Manager::new());
@@ -113,9 +108,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Configure routes
     web_service.configure_routes(|router| {
-        let router = router.route("/api/health", get(webapi::health::index));
-        let router = router.route("/api/tasks/delete", delete(webapi::task::kill_task));
-
         // Add Swagger UI
         let swagger_ui = SwaggerUi::new("/api-docs/swagger/")
             .url("/api-docs/openapi.json", ApiDoc::openapi());
@@ -124,30 +116,41 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .merge(Redoc::with_url("/api-docs/redoc/", ApiDoc::openapi()))
             .merge(RapiDoc::new("/api-docs/openapi.json").path("/api-docs/rapidoc"));
 
-        let router = router
-            .route("/api/hotel", post(hotel_controller::add_hotel))
-            .route("/api/hotel/delete", post(hotel_controller::delete_hotel))
-            .route("/api/bots", get(bot_controller::index))
-            .route("/api/bots/bulk_update", put(bot_controller::bulk_update))
-            .route("/api/bots/:ticket", get(bot_controller::show))
-            .route("/api/bots/:ticket", put(bot_controller::update))
-            .route("/api/bots/:ticket/send_friend_request", post(friend_request::send_friend_request))
-            .route("/api/bots/broadcast/send_friend_request", post(broadcast_send_friend_request))
-            .route("/api/rooms/enter", post(enter_room_controller::enter_room))
-            .route("/api/rooms/:room_id/walk_to_position", post(walk_controller::walk_to_position))
-            .route("/api/rooms/:room_id/walk_to_random_position", post(walk_controller::walk_randomly))
-            .route("/api/rooms/:room_id/dance", post(room_dance_controller::dance))
-            .route("/api/bots/broadcast/message", post(message_controller::broadcast_message))
-            .route("/api/bots/broadcast/enter_room", post(webapi::bot::broadcast_enter_room))
-            .route("/api/bots/broadcast/cfh_abuse", post(webapi::bot::broadcast_cfh_abuse));
+        // Health API
+        let router = router.route("/api/health", get(webapi::health::index));
 
-        let router = router
-            .route("/api/hotels", post(hotel_controller::list));
+        // Task API
+        let router = router.route("/api/tasks/delete", delete(webapi::task::kill_task));
 
-        // Session actions
+        // Hotel API
         let router = router
-            .route("/api/sessions/add", post(webapi::api_session::add))
-            .route("/api/sessions/add_many", post(webapi::api_session::add_many));
+            .route("/api/hotels", post(hotel_controller::add_hotel))
+            .route("/api/hotels/:name", delete(hotel_controller::delete_hotel))
+            .route("/api/hotels", get(hotel_controller::list));
+
+        // Bot API
+        let router = router
+            .route("/api/hotels/:hotel/bots", get(bot_controller::index))
+            .route("/api/hotels/:hotel/bots", put(bot_controller::bulk_update))
+            .route("/api/hotels/:hotel/bots/:ticket", put(bot_controller::update))
+            .route("/api/hotels/:hotel/bots/:ticket", get(bot_controller::show))
+            .route("/api/hotels/:hotel/bots/:ticket/send_friend_request", post(friend_request::send_friend_request))
+            .route("/api/hotels/:hotel/bots/send_friend_request", post(broadcast_send_friend_request));
+
+        // Room API
+        let router = router
+            .route("/api/hotels/:hotel/rooms/enter", post(enter_room_controller::enter_room))
+            .route("/api/hotels/:hotel/rooms/:room_id/walk_to_position", post(walk_controller::walk_to_position))
+            .route("/api/hotels/:hotel/rooms/:room_id/walk_to_random_position", post(walk_controller::walk_randomly))
+            .route("/api/hotels/:hotel/rooms/:room_id/dance", post(room_dance_controller::dance))
+            .route("/api/hotels/:hotel/bots/message", post(message_controller::broadcast_message))
+            .route("/api/hotels/:hotel/bots/enter_room", post(webapi::bot::broadcast_enter_room))
+            .route("/api/hotels/:hotel/bots/cfh_abuse", post(webapi::bot::broadcast_cfh_abuse));
+
+        // Session API
+        let router = router
+            .route("/api/hotels/:hotel/sessions", post(webapi::api_session::add))
+            .route("/api/hotels/:hotel/sessions/add_many", post(webapi::api_session::add_many));
 
         return router;
     })?;

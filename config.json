@@ -4,8 +4,13 @@
   "use_default_handlers": true,
   "handlers": [
     {
-      "name": "Localhost Hotel",
+      "name": "Localhost",
       "ws_link": "ws://127.0.0.1:2096",
+      "origin": "http://localhost"
+    },
+    {
+      "name": "Plex",
+      "ws_link": "ws://localhost:2096",
       "origin": "http://localhost"
     }
   ]

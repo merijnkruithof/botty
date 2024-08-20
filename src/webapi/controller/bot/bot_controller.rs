@@ -23,7 +23,7 @@ use crate::core::taskmgr::task::KillableTask;
 #[derive(OpenApi)]
 #[openapi(
     paths(index,show),
-    components(schemas(AvailableBots,BotInfo,BotsRequest, ShowBotRequest,BulkUpdateResponse))
+    components(schemas(AvailableBots,BotInfo,BulkUpdateResponse))
 )]
 pub struct BotApi;
 
@@ -42,20 +42,10 @@ pub struct BotInfo {
     pub sso_ticket: String
 }
 
-#[derive(Deserialize, ToSchema)]
-pub struct BotsRequest {
-    hotel: String,
-}
-
 #[utoipa::path(
     get,
     path = "",
     description = "Get all online bots including all user info.",
-    request_body(
-        content = BotsRequest,
-        description = "Payload to request bots based on the hotel",
-        content_type = "application/json"
-    ),
     responses(
         (status = 200, description = "List of available bots", body = AvailableBots),
         (status = 400, description = "Bad request"),
@@ -66,8 +56,8 @@ pub struct BotsRequest {
 
     tag = "Bot"
 )]
-pub async fn index(connection_service: Extension<Arc<retro::Manager>>, Json(payload): Json<BotsRequest>) -> Result<Json<AvailableBots>, StatusCode> {
-    let handler = connection_service.get_hotel_connection_handler(payload.hotel).map_err(|_| StatusCode::NOT_FOUND)?;
+pub async fn index(hotel: Path<String>, connection_service: Extension<Arc<retro::Manager>>) -> Result<Json<AvailableBots>, StatusCode> {
+    let handler = connection_service.get_hotel_connection_handler(hotel.clone()).map_err(|_| StatusCode::NOT_FOUND)?;
 
     let mut response = AvailableBots{
         bots: None,
@@ -92,21 +82,10 @@ pub async fn index(connection_service: Extension<Arc<retro::Manager>>, Json(payl
     Ok(Json(response))
 }
 
-#[derive(Deserialize, ToSchema)]
-pub struct ShowBotRequest {
-    hotel: String,
-}
-
-
 #[utoipa::path(
     get,
-    path = "/{ticket}",
+    path = "/hotels/{hotel}/bots/{ticket}",
     description = "Get a single bot's information.",
-    request_body(
-        content = ShowBotRequest,
-        description = "Payload to request a single based on the hotel",
-        content_type = "application/json"
-    ),
     responses(
         (status = 200, description = "The requested bot", body = AvailableBots),
         (status = 400, description = "Bad request"),
@@ -118,11 +97,11 @@ pub struct ShowBotRequest {
     tag = "Bot"
 )]
 pub async fn show(
+    hotel: Path<String>,
     ticket: Path<String>,
-    connection_service: Extension<Arc<retro::Manager>>,
-    Json(payload): Json<ShowBotRequest>
+    connection_service: Extension<Arc<retro::Manager>>
 ) -> Result<Json<BotInfo>, StatusCode> {
-    match connection_service.get_hotel_connection_handler(payload.hotel) {
+    match connection_service.get_hotel_connection_handler(hotel.clone()) {
         Ok(handler) => {
             let user_manager = handler.global_state().user_manager.clone();
 

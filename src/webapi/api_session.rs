@@ -1,20 +1,20 @@
 use std::sync::Arc;
 
 use axum::{Extension, Json};
+use axum::extract::Path;
 use http::StatusCode;
 use serde::Deserialize;
-use tracing::error;
+use tracing::{error, info};
 
 use crate::retro;
 
 #[derive(Deserialize)]
 pub struct AddSession {
-    hotel: String,
     auth_ticket: String,
 }
 
-pub async fn add(connection_service: Extension<Arc<retro::Manager>>, Json(payload): Json<AddSession>) -> StatusCode {
-    match connection_service.get_hotel_connection_handler(payload.hotel) {
+pub async fn add(hotel: Path<String>, connection_service: Extension<Arc<retro::Manager>>, Json(payload): Json<AddSession>) -> StatusCode {
+    match connection_service.get_hotel_connection_handler(hotel.clone()) {
         Ok(handler) => {
             if let Err(err) = handler.new_client(payload.auth_ticket.clone()).await {
                 error!("unable to add session {}, reason: {:?}", payload.auth_ticket, err);
@@ -35,12 +35,11 @@ pub async fn add(connection_service: Extension<Arc<retro::Manager>>, Json(payloa
 
 #[derive(Deserialize)]
 pub struct AddSessionMany {
-    hotel: String,
     tickets: Vec<String>
 }
 
-pub async fn    add_many(connection_service: Extension<Arc<retro::Manager>>, Json(payload): Json<AddSessionMany>) -> StatusCode {
-    match connection_service.get_hotel_connection_handler(payload.hotel) {
+pub async fn add_many(Path(hotel): Path<String>, connection_service: Extension<Arc<retro::Manager>>, Json(payload): Json<AddSessionMany>) -> StatusCode {
+    match connection_service.get_hotel_connection_handler(hotel.clone()) {
         Ok(handler) => {
             for ticket in payload.tickets {
                 let handler_clone = handler.clone();
