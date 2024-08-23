@@ -58,6 +58,7 @@ pub struct AddHotel {
     name: String,
     ws_link: String,
     origin: String,
+    test_connection: bool,
 }
 
 #[utoipa::path(
@@ -71,7 +72,8 @@ pub struct AddHotel {
     ),
     responses(
         (status = 200, description = "Hotel added"),
-        (status = 409, description = "Conflict - Hotel already exists"),
+        (status = 409, description = "Hotel already exists"),
+        (status = 502, description = "Unable to connect to websocket server"),
     ),
     security(
         ("api_key" = [])
@@ -81,6 +83,14 @@ pub struct AddHotel {
 )]
 pub async fn add_hotel(connection_service: Extension<Arc<retro::Manager>>, Json(payload): Json<AddHotel>) -> Result<(), StatusCode> {
     let connector = connection::Connector::new(payload.ws_link.clone(), payload.origin.clone());
+    if payload.test_connection {
+        let _ =  connector.connect().await.map_err(|err| {
+            error!("Unable to connect to the websocket server {} with origin {}, error: {:?}", payload.ws_link, payload.origin, err);
+
+            StatusCode::BAD_GATEWAY
+        })?;
+    }
+
     let hotel_manager = hotel::Manager::new(Arc::new(connector));
 
     let _ = connection_service.add_hotel(payload.name.clone(), Arc::new(hotel_manager)).await.map_err(|previous_err| {
