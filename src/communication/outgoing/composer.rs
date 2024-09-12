@@ -14,7 +14,7 @@ impl Composable for ClientHello {
         let mut buf = BytesMut::new();
         let mut packet_writer = Writer::new(&mut buf);
         packet_writer.write_uint16(4000);
-        packet_writer.write_string("NITRO-1-6-6-HTML5");
+        packet_writer.write_string("BOTTY");
 
         Message::Binary(buf.to_vec())
     }
